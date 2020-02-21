@@ -1,66 +1,57 @@
 package gollect
 
 import (
-	"go/ast"
 	"go/parser"
 	"go/token"
 	"log"
 	"os"
-	"path/filepath"
 
 	"golang.org/x/tools/go/packages"
 )
 
-func getAstFiles(fset *token.FileSet, glob string) map[string][]*ast.File {
-	g, err := filepath.Glob(glob)
-	if err != nil {
-		log.Fatalf("parse glob: %v", err)
-	}
-
-	res := make(map[string][]*ast.File)
-	processed := make(map[string]struct{})
-
-	type pathInfo struct{ packagePath, filepath string }
-	targets := make([]*pathInfo, len(g))
-	for i, p := range g {
-		targets[i] = &pathInfo{
-			packagePath: "main",
-			filepath:    p,
-		}
-	}
-
-	for ; len(targets) > 0; targets = targets[1:] {
-		info := targets[0]
-		processed[info.filepath] = struct{}{}
-
-		f, err := parser.ParseFile(fset, info.filepath, nil, 0)
-		if err != nil {
-			log.Fatalf("parse file: %v", err)
+func ParseAll(
+	packages Packages,
+	fset *token.FileSet,
+	imports ImportSet,
+	packagePath string,
+	filePaths ...string,
+) {
+	paths := []string{packagePath}
+	for ; len(paths) > 0; paths = paths[1:] {
+		pp := paths[0]
+		if _, ok := packages[pp]; ok {
+			continue
 		}
 
-		res[info.packagePath] = append(res[info.packagePath], f)
-
-		for _, i := range f.Imports {
-			pp := trimQuotes(i.Path.Value)
-			if _, ok := processed[pp]; ok || isBuiltinPackage(pp) {
-				continue
-			}
-
-			for _, pfp := range findPackageFilePaths(pp) {
-				targets = append(targets, &pathInfo{
-					packagePath: pp,
-					filepath:    pfp,
-				})
-			}
+		var fp []string
+		if pp == packagePath {
+			fp = filePaths
+		} else {
+			fp = FindFilePaths(pp)
 		}
-	}
 
-	return res
+		pkg := NewPackage(pp, imports)
+		packages[pp] = pkg
+
+		ParseAst(fset, pkg, fp...)
+		paths = append(paths, NextPackagePaths(pkg)...)
+	}
 }
 
-func findPackageFilePaths(names ...string) (paths []string) {
+func ParseAst(fset *token.FileSet, p *Package, paths ...string) {
+	for _, path := range paths {
+		f, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
+		if err != nil {
+			log.Fatalf("parse file (path = %s): %v", path, err)
+		}
+
+		p.files = append(p.files, f)
+	}
+}
+
+func FindFilePaths(path string) (paths []string) {
 	cfg := &packages.Config{Mode: packages.NeedFiles | packages.NeedSyntax}
-	pkgs, err := packages.Load(cfg, names...)
+	pkgs, err := packages.Load(cfg, path)
 	if err != nil {
 		log.Fatalf("load: %v\n", err)
 	}
@@ -71,6 +62,20 @@ func findPackageFilePaths(names ...string) (paths []string) {
 
 	for _, pkg := range pkgs {
 		paths = append(paths, pkg.GoFiles...)
+	}
+	return
+}
+
+func NextPackagePaths(p *Package) (paths []string) {
+	m := make(map[string]interface{})
+	for _, f := range p.files {
+		for _, i := range f.Imports {
+			p := trimQuotes(i.Path.Value)
+			if _, ok := m[p]; !ok && !isBuiltinPackage(p) {
+				m[p] = struct{}{}
+				paths = append(paths, p)
+			}
+		}
 	}
 	return
 }

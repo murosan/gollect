@@ -6,7 +6,18 @@ import (
 	"go/importer"
 	"go/token"
 	"go/types"
+	"log"
 )
+
+func AnalyzeForeach(fset *token.FileSet, pkgs Packages) {
+	for _, pkg := range pkgs {
+		if err := ExecCheck(fset, pkg); err != nil {
+			log.Fatalln(err)
+		}
+		pkg.InitObjects()
+		ResolveDependency(pkg)
+	}
+}
 
 func ExecCheck(fset *token.FileSet, pkg *Package) error {
 	conf := &types.Config{
@@ -20,7 +31,6 @@ func ExecCheck(fset *token.FileSet, pkg *Package) error {
 }
 
 func ResolveDependency(pkg *Package) {
-	// TODO: concurrent
 	for _, file := range pkg.files {
 		for _, decl := range file.Decls {
 			resolve(pkg, decl)

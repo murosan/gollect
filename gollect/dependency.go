@@ -156,3 +156,12 @@ func (eds ExternalDependencySet) Get(path, name string) (ExternalDependency, boo
 	_, ok := eds[ed]
 	return ed, ok
 }
+
+func UseAll(packages Packages, next []ExternalDependencySet) {
+	for ; len(next) > 0; next = next[1:] {
+		for ed := range next[0] {
+			deps := packages[ed.path].Dependencies()
+			next = append(next, deps.Use(ed.name)...)
+		}
+	}
+}

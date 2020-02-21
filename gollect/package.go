@@ -2,40 +2,68 @@ package gollect
 
 import (
 	"go/ast"
+	"go/token"
 	"go/types"
+	"log"
+	"path/filepath"
 )
 
-type Package struct {
-	path    string
-	files   []*ast.File
-	imports ImportSet
-	objects map[string]*ast.Object // map of package level objects
+type (
+	Package struct {
+		path    string                 // package path
+		files   []*ast.File            // container of ast files
+		imports ImportSet              // shared in global
+		objects map[string]*ast.Object // map of package-level objects
 
-	info *types.Info
-	deps Dependencies // pairs of ident name and Dependency
-}
+		info *types.Info  // uses info
+		deps Dependencies // pairs of ident name and Dependency
+	}
 
-func NewPackage(path string, files []*ast.File, imports ImportSet) *Package {
+	Packages map[string]*Package
+)
+
+func NewPackage(path string, imports ImportSet) *Package {
 	return &Package{
 		path:    path,
-		files:   files,
+		files:   nil,
 		imports: imports,
-		objects: nil,
+		objects: make(map[string]*ast.Object),
 		info: &types.Info{
-			Uses: map[*ast.Ident]types.Object{},
+			Uses: make(map[*ast.Ident]types.Object),
 		},
 		deps: make(Dependencies),
 	}
 }
 
 func (pkg *Package) InitObjects() {
-	objects := make(map[string]*ast.Object)
-	pkg.objects = objects
 	for _, file := range pkg.files {
 		for k, v := range file.Scope.Objects {
-			objects[k] = v
+			pkg.objects[k] = v
 		}
 	}
 }
 
 func (pkg *Package) Dependencies() Dependencies { return pkg.deps }
+
+func NewPackages(
+	fset *token.FileSet,
+	imports ImportSet,
+	packagePath,
+	glob string,
+) Packages {
+	paths, err := filepath.Glob(glob)
+	if err != nil {
+		log.Fatalf("parse glob: %v", err)
+	}
+
+	packages := make(Packages)
+	ParseAll(
+		packages,
+		fset,
+		imports,
+		packagePath,
+		paths...,
+	)
+
+	return packages
+}
