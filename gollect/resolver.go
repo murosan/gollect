@@ -6,13 +6,12 @@ import (
 	"go/importer"
 	"go/token"
 	"go/types"
-	"log"
 )
 
 func AnalyzeForeach(fset *token.FileSet, pkgs Packages) {
 	for _, pkg := range pkgs {
 		if err := ExecCheck(fset, pkg); err != nil {
-			log.Fatalln(err)
+			panic(err)
 		}
 		pkg.InitObjects()
 		ResolveDependency(pkg)
@@ -95,10 +94,10 @@ func setDependency(pkg *Package, id *ast.Ident, node ast.Node) {
 					}
 
 					i := pkg.imports.GetOrCreate(alias, name, path)
-					pkg.Dependencies().SetImport(id, i)
+					pkg.Dependencies().SetImport(id.Name, i)
 
 					if !isBuiltinPackage(path) {
-						pkg.Dependencies().SetExternal(id, path, node.Sel.Name)
+						pkg.Dependencies().SetExternal(id.Name, path, node.Sel.Name)
 					}
 				}
 			}

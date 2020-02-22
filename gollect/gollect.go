@@ -2,7 +2,6 @@ package gollect
 
 import (
 	"go/token"
-	"log"
 	"os"
 )
 
@@ -21,7 +20,7 @@ func Main(glob string) {
 	UseAll(packages, next)
 
 	if err := Write(os.Stdout, fset, packages, imports); err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
 }
 

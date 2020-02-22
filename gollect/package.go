@@ -1,10 +1,10 @@
 package gollect
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
-	"log"
 	"path/filepath"
 )
 
@@ -53,7 +53,7 @@ func NewPackages(
 ) Packages {
 	paths, err := filepath.Glob(glob)
 	if err != nil {
-		log.Fatalf("parse glob: %v", err)
+		panic(fmt.Errorf("parse glob: %w", err))
 	}
 
 	packages := make(Packages)
@@ -66,4 +66,13 @@ func NewPackages(
 	)
 
 	return packages
+}
+
+func (p Packages) Set(path string, pkg *Package) {
+	p[path] = pkg
+}
+
+func (p Packages) Get(path string) (*Package, bool) {
+	pkg, ok := p[path]
+	return pkg, ok
 }

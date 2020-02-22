@@ -2,7 +2,6 @@ package gollect
 
 import (
 	"fmt"
-	"go/ast"
 )
 
 type Dependencies map[string]*Dependency
@@ -12,15 +11,15 @@ func (deps Dependencies) Get(name string) (*Dependency, bool) {
 	return d, ok
 }
 
-func (deps Dependencies) Set(name string, d *Dependency) {
-	deps[name] = d
+func (deps Dependencies) Set(d *Dependency) {
+	deps[d.name] = d
 }
 
 func (deps Dependencies) GetOrCreate(name string) *Dependency {
 	d, ok := deps.Get(name)
 	if !ok {
 		d = NewDependency(name)
-		deps.Set(name, d)
+		deps.Set(d)
 	}
 	return d
 }
@@ -30,12 +29,12 @@ func (deps Dependencies) SetInternal(caller, target string) {
 	c.SetInternal(t)
 }
 
-func (deps Dependencies) SetExternal(caller *ast.Ident, path, target string) {
-	deps.GetOrCreate(caller.Name).SetExternal(path, target)
+func (deps Dependencies) SetExternal(caller, path, target string) {
+	deps.GetOrCreate(caller).SetExternal(path, target)
 }
 
-func (deps Dependencies) SetImport(caller *ast.Ident, i *Import) {
-	deps.GetOrCreate(caller.Name).SetImport(i)
+func (deps Dependencies) SetImport(caller string, i *Import) {
+	deps.GetOrCreate(caller).SetImport(i)
 }
 
 func (deps Dependencies) Use(key string) []ExternalDependencySet {
@@ -160,8 +159,12 @@ func (eds ExternalDependencySet) Get(path, name string) (ExternalDependency, boo
 func UseAll(packages Packages, next []ExternalDependencySet) {
 	for ; len(next) > 0; next = next[1:] {
 		for ed := range next[0] {
-			deps := packages[ed.path].Dependencies()
-			next = append(next, deps.Use(ed.name)...)
+			if pkg, ok := packages.Get(ed.path); ok {
+				deps := pkg.Dependencies()
+				next = append(next, deps.Use(ed.name)...)
+			} else {
+				panic("unknown package. path=" + ed.path)
+			}
 		}
 	}
 }

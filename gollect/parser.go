@@ -1,9 +1,9 @@
 package gollect
 
 import (
+	"fmt"
 	"go/parser"
 	"go/token"
-	"log"
 	"os"
 
 	"golang.org/x/tools/go/packages"
@@ -19,7 +19,7 @@ func ParseAll(
 	paths := []string{packagePath}
 	for ; len(paths) > 0; paths = paths[1:] {
 		pp := paths[0]
-		if _, ok := packages[pp]; ok {
+		if _, ok := packages.Get(pp); ok {
 			continue
 		}
 
@@ -31,7 +31,7 @@ func ParseAll(
 		}
 
 		pkg := NewPackage(pp, imports)
-		packages[pp] = pkg
+		packages.Set(pp, pkg)
 
 		ParseAst(fset, pkg, fp...)
 		paths = append(paths, NextPackagePaths(pkg)...)
@@ -42,7 +42,7 @@ func ParseAst(fset *token.FileSet, p *Package, paths ...string) {
 	for _, path := range paths {
 		f, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
 		if err != nil {
-			log.Fatalf("parse file (path = %s): %v", path, err)
+			panic(fmt.Errorf("parse file (path = %s): %w", path, err))
 		}
 
 		p.files = append(p.files, f)
@@ -53,7 +53,7 @@ func FindFilePaths(path string) (paths []string) {
 	cfg := &packages.Config{Mode: packages.NeedFiles | packages.NeedSyntax}
 	pkgs, err := packages.Load(cfg, path)
 	if err != nil {
-		log.Fatalf("load: %v\n", err)
+		panic(fmt.Errorf("load: %w\n", err))
 	}
 
 	if packages.PrintErrors(pkgs) > 0 {
