@@ -3,6 +3,7 @@ package gollect
 import (
 	"fmt"
 	"go/ast"
+	"go/token"
 	"strconv"
 )
 
@@ -70,4 +71,19 @@ func (s ImportSet) GetOrCreate(alias, name, path string) *Import {
 	}
 	s.Add(i)
 	return i
+}
+
+func (s ImportSet) ToDecl() *ast.GenDecl {
+	d := &ast.GenDecl{
+		Tok:    token.IMPORT,
+		Lparen: 1, // if zero, imports will not be sorted
+	}
+
+	for _, i := range s {
+		if i.IsUsed() && i.IsBuiltin() {
+			d.Specs = append(d.Specs, i.ToSpec())
+		}
+	}
+
+	return d
 }

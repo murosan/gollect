@@ -9,31 +9,25 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-func ParseAll(
-	packages Packages,
-	fset *token.FileSet,
-	imports ImportSet,
-	packagePath string,
-	filePaths ...string,
-) {
-	paths := []string{packagePath}
+func ParseAll(program *Program) {
+	paths := []string{"main"}
 	for ; len(paths) > 0; paths = paths[1:] {
 		pp := paths[0]
-		if _, ok := packages.Get(pp); ok {
+		if _, ok := program.Packages().Get(pp); ok {
 			continue
 		}
 
 		var fp []string
-		if pp == packagePath {
-			fp = filePaths
+		if pp == "main" {
+			fp = program.FilePaths()
 		} else {
 			fp = FindFilePaths(pp)
 		}
 
-		pkg := NewPackage(pp, imports)
-		packages.Set(pp, pkg)
+		pkg := NewPackage(pp, program.ImportSet())
+		program.Packages().Set(pp, pkg)
 
-		ParseAst(fset, pkg, fp...)
+		ParseAst(program.FileSet(), pkg, fp...)
 		paths = append(paths, NextPackagePaths(pkg)...)
 	}
 }

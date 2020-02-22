@@ -8,25 +8,22 @@ import (
 	"go/types"
 )
 
-func AnalyzeForeach(fset *token.FileSet, pkgs Packages) {
-	for _, pkg := range pkgs {
-		if err := ExecCheck(fset, pkg); err != nil {
-			panic(err)
-		}
+func AnalyzeForeach(program *Program) {
+	for _, pkg := range program.Packages() {
+		ExecCheck(program.FileSet(), pkg)
 		pkg.InitObjects()
 		ResolveDependency(pkg)
 	}
 }
 
-func ExecCheck(fset *token.FileSet, pkg *Package) error {
+func ExecCheck(fset *token.FileSet, pkg *Package) {
 	conf := &types.Config{
 		Importer: importer.ForCompiler(fset, "source", nil),
 	}
 
 	if _, err := conf.Check(pkg.path, fset, pkg.files, pkg.info); err != nil {
-		return fmt.Errorf("types.Conf check: %w", err)
+		panic(fmt.Errorf("types.Conf check: %w", err))
 	}
-	return nil
 }
 
 func ResolveDependency(pkg *Package) {

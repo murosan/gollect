@@ -5,17 +5,13 @@ import (
 	"fmt"
 	"go/ast"
 	"go/format"
-	"go/token"
 	"io"
 )
 
-func Write(
-	w io.Writer,
-	fset *token.FileSet,
-	packages map[string]*Package,
-	imports ImportSet,
-) error {
+func Write(w io.Writer, program *Program) error {
 	var buf bytes.Buffer
+
+	fset, iset, packages := program.FileSet(), program.ImportSet(), program.Packages()
 
 	// get head of main package's ast files
 	// treat this as base ast
@@ -24,11 +20,10 @@ func Write(
 
 	// delete unused codes and all imports from base ast
 	main.Decls = FilterDecls(mainPackage.Dependencies(), main.Decls)
-	RemoveExternalIdents(main, imports)
+	RemoveExternalIdents(main, iset)
 
 	// build new import decl and push it to head of decls
-	i := importDecl(imports)
-	main.Decls = append([]ast.Decl{i}, main.Decls...)
+	main.Decls = append([]ast.Decl{iset.ToDecl()}, main.Decls...)
 
 	if err := format.Node(&buf, fset, main); err != nil {
 		return fmt.Errorf("format: %w", err)
@@ -39,7 +34,7 @@ func Write(
 			if file != main {
 				decls := FilterDecls(packages[path].Dependencies(), file.Decls)
 				for _, d := range decls {
-					RemoveExternalIdents(d, imports)
+					RemoveExternalIdents(d, iset)
 				}
 
 				buf.Write([]byte("\n"))
@@ -57,17 +52,4 @@ func Write(
 
 	_, err := buf.WriteTo(w)
 	return err
-}
-
-func importDecl(imports ImportSet) *ast.GenDecl {
-	d := &ast.GenDecl{
-		Tok:    token.IMPORT,
-		Lparen: 1, // if zero, imports will not be sorted
-	}
-	for _, i := range imports {
-		if i.IsUsed() && i.IsBuiltin() {
-			d.Specs = append(d.Specs, i.ToSpec())
-		}
-	}
-	return d
 }
