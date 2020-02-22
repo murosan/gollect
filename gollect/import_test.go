@@ -2,6 +2,7 @@ package gollect
 
 import (
 	"go/ast"
+	"go/token"
 	"reflect"
 	"testing"
 )
@@ -123,5 +124,43 @@ func TestImportSet(t *testing.T) {
 	}
 	if i2.alias != v.alias || i2.name != v.name || i2.path != v.path {
 		t.Errorf("want: %v, actual: %v", i2, v)
+	}
+}
+
+func TestImportSet_ToDecl(t *testing.T) {
+	set := make(ImportSet)
+	i1 := NewImport("", "fmt", "fmt")
+	i2 := NewImport("f", "fmt", "fmt")
+	i3 := NewImport("unused", "fmt", "fmt")
+	i4 := NewImport("", "abc", "github.com/murosan/abc")
+	i5 := NewImport("abcv4", "abc", "github.com/murosan/abc/v2")
+
+	i1.Use()
+	i2.Use()
+	// i3 is not used
+	i4.Use()
+	i5.Use()
+
+	set.Add(i1)
+	set.Add(i2)
+	set.Add(i3)
+	set.Add(i4)
+	set.Add(i5)
+
+	set.Add(i1)
+	set.Add(i2)
+	set.Add(i3)
+	set.Add(i4)
+	set.Add(i5)
+
+	want := &ast.GenDecl{
+		Tok:    token.IMPORT,
+		Lparen: 1,
+		Specs:  []ast.Spec{i1.ToSpec(), i2.ToSpec()}, // used && builtin only
+	}
+	actual := set.ToDecl()
+
+	if !reflect.DeepEqual(want, actual) {
+		t.Errorf("\nwant:   %v\nactual: %v", want, actual)
 	}
 }
