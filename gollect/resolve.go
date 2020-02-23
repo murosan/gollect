@@ -100,11 +100,10 @@ func setDependency(pkg *Package, id *ast.Ident, node ast.Node) {
 			}
 
 		case *ast.Ident:
-			if node.Obj == nil {
-				break
-			}
-
-			if obj, ok := pkg.objects[node.Name]; !ok || obj != node.Obj {
+			if _, ok := pkg.objects[node.Name]; !ok {
+				// break when the object is
+				//   - not a package-level declaration
+				//   - an external package object
 				break
 			}
 
