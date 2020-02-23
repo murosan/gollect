@@ -39,11 +39,11 @@ func Write(w io.Writer, program *Program) error {
 					RemoveExternalIdents(d, iset)
 				}
 
-				buf.Write([]byte("\n"))
-				if err := format.Node(&buf, fset, decls); err != nil {
-					return fmt.Errorf("format: %w", err)
-				}
 				if len(decls) != 0 {
+					buf.Write([]byte("\n"))
+					if err := format.Node(&buf, fset, decls); err != nil {
+						return fmt.Errorf("format: %w", err)
+					}
 					if _, ok := decls[len(decls)-1].(*ast.GenDecl); !ok {
 						buf.Write([]byte("\n"))
 					}
