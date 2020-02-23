@@ -160,7 +160,27 @@ func TestImportSet_ToDecl(t *testing.T) {
 	}
 	actual := set.ToDecl()
 
-	if !reflect.DeepEqual(want, actual) {
+	eq := func(a, b *ast.GenDecl) bool {
+		if !reflect.DeepEqual(a.Doc, b.Doc) ||
+			a.TokPos != b.TokPos ||
+			a.Tok != b.Tok ||
+			a.Lparen != b.Lparen ||
+			a.Rparen != b.Rparen ||
+			len(a.Specs) != len(b.Specs) ||
+			((a.Specs == nil) != (b.Specs == nil)) {
+			return false
+		}
+
+		for i := range a.Specs {
+			if !reflect.DeepEqual(a.Specs[i], b.Specs[i]) {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	if !eq(want, actual) {
 		t.Errorf("\nwant:   %v\nactual: %v", want, actual)
 	}
 }
