@@ -1,0 +1,44 @@
+package gollect
+
+import (
+	"testing"
+
+	"github.com/murosan/gollect/gollect/testdata"
+)
+
+func TestParseAll(t *testing.T) {
+	program := NewProgram(testdata.FilePaths.A)
+
+	if program.Packages() == nil ||
+		program.ImportSet() == nil ||
+		len(program.ImportSet()) != 0 ||
+		len(program.FilePaths()) == 0 ||
+		len(program.Packages()) != 0 {
+		t.Fatalf("something is wrong. %v", program)
+	}
+
+	ParseAll(program)
+	packages := program.Packages()
+
+	if len(packages) != 3 {
+		t.Errorf("len=%d, packages=%v", len(packages), packages)
+	}
+
+	for i, c := range []struct {
+		path  string
+		files int
+	}{
+		{path: "main", files: 1},
+		{path: testdata.PackagePaths.Pkg1, files: 2},
+		{path: testdata.PackagePaths.Pkg2, files: 1},
+	} {
+		v, ok := packages[c.path]
+		if !ok {
+			t.Errorf("key not found. at=%d, key=%s", i, c.path)
+		}
+
+		if len(v.files) != c.files {
+			t.Errorf("files count. at=%d, want=%d, actual=%d", i, c.files, len(v.files))
+		}
+	}
+}
