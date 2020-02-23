@@ -6,6 +6,8 @@ import (
 	"go/ast"
 	"go/format"
 	"io"
+
+	"github.com/atotto/clipboard"
 )
 
 func Write(w io.Writer, program *Program) error {
@@ -50,6 +52,15 @@ func Write(w io.Writer, program *Program) error {
 		}
 	}
 
-	_, err := buf.WriteTo(w)
-	return err
+	if _, err := w.Write(buf.Bytes()); err != nil {
+		return err
+	}
+
+	// TODO: refactor
+	if !clipboard.Unsupported {
+		if err := clipboard.WriteAll(buf.String()); err != nil {
+			return err
+		}
+	}
+	return nil
 }
