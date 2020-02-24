@@ -3,6 +3,7 @@ package gollect
 import (
 	"go/ast"
 	"go/token"
+	"go/types"
 
 	"golang.org/x/tools/go/ast/astutil"
 )
@@ -88,17 +89,21 @@ func IsUsedFuncDecl(deps Dependencies, decl *ast.FuncDecl) bool {
 	return deps.IsUsed(id.Name)
 }
 
-func RemoveExternalIdents(node ast.Node, imports ImportSet) {
+func RemoveExternalIdents(node ast.Node, pkg *Package) {
+	iset, uses := pkg.imports, pkg.info.Uses
+
 	astutil.Apply(node, func(cr *astutil.Cursor) bool {
 		switch n := cr.Node().(type) {
 		case nil:
 			return false
 
 		case *ast.SelectorExpr:
-			if i, ok := n.X.(*ast.Ident); ok && i != nil && i.Obj == nil {
-				ip, ok := imports.Get(i.Name)
-				if !ok || !isBuiltinPackage(ip.path) {
-					cr.Replace(n.Sel)
+			if i, ok := n.X.(*ast.Ident); ok && i != nil {
+				if _, ok := uses[i].(*types.PkgName); ok {
+					ip, ok := iset.Get(i.Name)
+					if !ok || !isBuiltinPackage(ip.path) {
+						cr.Replace(n.Sel)
+					}
 				}
 			}
 		}

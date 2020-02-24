@@ -17,7 +17,7 @@ func Write(w io.Writer, program *Program) error {
 
 	// delete unused codes and all imports from base ast
 	main.Decls = FilterDecls(mainPackage.Dependencies(), main.Decls)
-	RemoveExternalIdents(main, iset)
+	RemoveExternalIdents(main, mainPackage)
 
 	// build new import decl and push it to head of decls
 	main.Decls = append([]ast.Decl{iset.ToDecl()}, main.Decls...)
@@ -31,7 +31,7 @@ func Write(w io.Writer, program *Program) error {
 			if file != main {
 				decls := FilterDecls(packages[path].Dependencies(), file.Decls)
 				for _, d := range decls {
-					RemoveExternalIdents(d, iset)
+					RemoveExternalIdents(d, pkg)
 				}
 
 				if len(decls) != 0 {
