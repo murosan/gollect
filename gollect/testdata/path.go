@@ -16,12 +16,13 @@ var (
 	base = filepath.Join(cwd, "testdata", "codes")
 
 	FilePaths = struct {
-		A, B, Pkg1, Pkg2 string
+		A, B, Pkg1, Pkg2, Write string
 	}{
 		A:    filepath.Join(base, "a", "main.go"),
 		B:    filepath.Join(base, "b", "*.go"),
 		Pkg1: filepath.Join(base, "pkg1", "*.go"),
 		Pkg2: filepath.Join(base, "pkg2", "*.go"),
+		Write: filepath.Join(base, "write", "*.go"),
 	}
 
 	pkgBase = "github.com/murosan/gollect/gollect/testdata/codes"
