@@ -82,16 +82,10 @@ func IsUsedFuncDecl(deps Dependencies, decl *ast.FuncDecl) bool {
 		}
 	}
 
-	if id == nil {
-		return false
-	}
-
-	return deps.IsUsed(id.Name)
+	return id != nil && deps.IsUsed(id.Name)
 }
 
 func RemoveExternalIdents(node ast.Node, pkg *Package) {
-	iset, uses := pkg.imports, pkg.info.Uses
-
 	astutil.Apply(node, func(cr *astutil.Cursor) bool {
 		switch n := cr.Node().(type) {
 		case nil:
@@ -99,9 +93,8 @@ func RemoveExternalIdents(node ast.Node, pkg *Package) {
 
 		case *ast.SelectorExpr:
 			if i, ok := n.X.(*ast.Ident); ok && i != nil {
-				if _, ok := uses[i].(*types.PkgName); ok {
-					ip, ok := iset.Get(i.Name)
-					if !ok || !isBuiltinPackage(ip.path) {
+				if pn, ok := pkg.info.Uses[i].(*types.PkgName); ok {
+					if !isBuiltinPackage(pn.Imported().Path()) {
 						cr.Replace(n.Sel)
 					}
 				}
