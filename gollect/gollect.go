@@ -24,7 +24,3 @@ func Main(config *Config) {
 		panic(err)
 	}
 }
-
-func init() {
-	initBuiltinPackages()
-}
