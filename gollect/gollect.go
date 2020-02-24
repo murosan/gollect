@@ -1,11 +1,7 @@
 package gollect
 
-import (
-	"os"
-)
-
-func Main(glob string) {
-	p := NewProgram(glob)
+func Main(config *Config) {
+	p := NewProgram(config.InputFile)
 
 	// parse ast files and check dependencies
 	ParseAll(p)
@@ -16,7 +12,15 @@ func Main(glob string) {
 	next[0].Add("main", "main")
 	UseAll(p.Packages(), next)
 
-	if err := Write(os.Stdout, p); err != nil {
+	w := &writer{
+		config:   config,
+		provider: &writerProviderImpl{},
+	}
+
+	if err := Write(w, p); err != nil {
+		panic(err)
+	}
+	if err := w.writeForeach(); err != nil {
 		panic(err)
 	}
 }

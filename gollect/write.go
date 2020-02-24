@@ -1,18 +1,13 @@
 package gollect
 
 import (
-	"bytes"
 	"fmt"
 	"go/ast"
 	"go/format"
 	"io"
-
-	"github.com/atotto/clipboard"
 )
 
 func Write(w io.Writer, program *Program) error {
-	var buf bytes.Buffer
-
 	fset, iset, packages := program.FileSet(), program.ImportSet(), program.Packages()
 
 	// get head of main package's ast files
@@ -27,7 +22,7 @@ func Write(w io.Writer, program *Program) error {
 	// build new import decl and push it to head of decls
 	main.Decls = append([]ast.Decl{iset.ToDecl()}, main.Decls...)
 
-	if err := format.Node(&buf, fset, main); err != nil {
+	if err := format.Node(w, fset, main); err != nil {
 		return fmt.Errorf("format: %w", err)
 	}
 
@@ -40,27 +35,21 @@ func Write(w io.Writer, program *Program) error {
 				}
 
 				if len(decls) != 0 {
-					buf.Write([]byte("\n"))
-					if err := format.Node(&buf, fset, decls); err != nil {
+					if _, err := w.Write([]byte("\n")); err != nil {
+						return err
+					}
+					if err := format.Node(w, fset, decls); err != nil {
 						return fmt.Errorf("format: %w", err)
 					}
 					if _, ok := decls[len(decls)-1].(*ast.GenDecl); !ok {
-						buf.Write([]byte("\n"))
+						if _, err := w.Write([]byte("\n")); err != nil {
+							return err
+						}
 					}
 				}
 			}
 		}
 	}
 
-	if _, err := w.Write(buf.Bytes()); err != nil {
-		return err
-	}
-
-	// TODO: refactor
-	if !clipboard.Unsupported {
-		if err := clipboard.WriteAll(buf.String()); err != nil {
-			return err
-		}
-	}
 	return nil
 }

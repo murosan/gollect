@@ -28,6 +28,9 @@ func ParseAll(program *Program) {
 		program.Packages().Set(pp, pkg)
 
 		ParseAst(program.FileSet(), pkg, fp...)
+		if len(pkg.files) == 0 {
+			panic(fmt.Sprintf("there are no files. paths=%v", fp))
+		}
 		paths = append(paths, NextPackagePaths(pkg)...)
 	}
 }
