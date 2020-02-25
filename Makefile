@@ -4,6 +4,9 @@ install:
 clean:
 	go mod tidy
 
+test:
+	go test ./gollect
+
 test-c:
 	mkdir -p ./out
 	go test -cover -coverprofile ./out/cover.out ./gollect
