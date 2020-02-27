@@ -1,5 +1,5 @@
 install:
-	go install cmd
+	go install ./cmd/gollect.go
 
 clean:
 	go mod tidy
