@@ -172,9 +172,13 @@ func TestImportSet_ToDecl(t *testing.T) {
 		}
 
 		for i := range a.Specs {
-			if !reflect.DeepEqual(a.Specs[i], b.Specs[i]) {
-				return false
-			}
+			a, ok1 := a.Specs[i].(*ast.ImportSpec)
+			b, ok2 := b.Specs[i].(*ast.ImportSpec)
+
+			// must be *ast.ImportSpec
+			return ok1 && ok2 &&
+				((a.Name == nil && b.Name == nil) || (a.Name.Name == b.Name.Name)) &&
+				(a.Path.Value == b.Path.Value)
 		}
 
 		return true
