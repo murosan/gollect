@@ -12,13 +12,13 @@ func FilterDecls(deps Dependencies, decls []ast.Decl) (res []ast.Decl) {
 	for _, decl := range decls {
 		switch decl := decl.(type) {
 		case *ast.GenDecl:
-			FilterGenDecl(deps, decl)
+			filterGenDecl(deps, decl)
 			if len(decl.Specs) != 0 {
 				res = append(res, decl)
 			}
 
 		case *ast.FuncDecl:
-			if IsUsedFuncDecl(deps, decl) {
+			if isUsedFuncDecl(deps, decl) {
 				res = append(res, decl)
 			}
 		}
@@ -26,10 +26,10 @@ func FilterDecls(deps Dependencies, decls []ast.Decl) (res []ast.Decl) {
 	return
 }
 
-func FilterGenDecl(deps Dependencies, node *ast.GenDecl) {
+func filterGenDecl(deps Dependencies, node *ast.GenDecl) {
 	switch node.Tok {
 	case token.VAR, token.CONST, token.TYPE:
-		node.Specs = FilterSpecs(deps, node.Specs)
+		node.Specs = filterSpecs(deps, node.Specs)
 
 	case token.IMPORT:
 		// remove all imports to add unique ones later
@@ -37,11 +37,11 @@ func FilterGenDecl(deps Dependencies, node *ast.GenDecl) {
 	}
 }
 
-func FilterSpecs(deps Dependencies, specs []ast.Spec) (res []ast.Spec) {
+func filterSpecs(deps Dependencies, specs []ast.Spec) (res []ast.Spec) {
 	for _, spec := range specs {
 		switch spec := spec.(type) {
 		case *ast.ValueSpec:
-			FilterValueSpec(deps, spec)
+			filterValueSpec(deps, spec)
 			if len(spec.Names) != 0 {
 				res = append(res, spec)
 			}
@@ -55,7 +55,7 @@ func FilterSpecs(deps Dependencies, specs []ast.Spec) (res []ast.Spec) {
 	return
 }
 
-func FilterValueSpec(deps Dependencies, spec *ast.ValueSpec) {
+func filterValueSpec(deps Dependencies, spec *ast.ValueSpec) {
 	var names []*ast.Ident
 	var values []ast.Expr
 
@@ -70,7 +70,7 @@ func FilterValueSpec(deps Dependencies, spec *ast.ValueSpec) {
 	spec.Values = values
 }
 
-func IsUsedFuncDecl(deps Dependencies, decl *ast.FuncDecl) bool {
+func isUsedFuncDecl(deps Dependencies, decl *ast.FuncDecl) bool {
 	id := decl.Name
 
 	if decl.Recv != nil {
