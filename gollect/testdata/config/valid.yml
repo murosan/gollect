@@ -1,0 +1,4 @@
+inputFile: abc/def/main.go
+outputPaths:
+  - stdout
+  - clipboard
