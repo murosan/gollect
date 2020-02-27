@@ -1,5 +1,6 @@
 package gollect
 
+// Main executes whole program.
 func Main(config *Config) {
 	p := NewProgram(config.InputFile)
 

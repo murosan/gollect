@@ -8,6 +8,7 @@ import (
 	"go/types"
 )
 
+// AnalyzeForeach executes analying dependency for each packages.
 func AnalyzeForeach(program *Program) {
 	for _, pkg := range program.Packages() {
 		ExecCheck(program.FileSet(), pkg)
@@ -16,6 +17,7 @@ func AnalyzeForeach(program *Program) {
 	}
 }
 
+// ExecCheck executes types.Config.Check
 func ExecCheck(fset *token.FileSet, pkg *Package) {
 	conf := &types.Config{
 		Importer: importer.ForCompiler(fset, "source", nil),
@@ -26,6 +28,7 @@ func ExecCheck(fset *token.FileSet, pkg *Package) {
 	}
 }
 
+// ResolveDependency analyzes dependency for each decls.
 func ResolveDependency(pkg *Package) {
 	for _, file := range pkg.files {
 		for _, decl := range file.Decls {

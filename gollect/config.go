@@ -9,6 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Config is a configuration.
 type Config struct {
 	// path to main.go or glob of main package files
 	InputFile string `yaml:"inputFile"`
@@ -18,6 +19,7 @@ type Config struct {
 	OutputPaths []string `yaml:"outputPaths"`
 }
 
+// LoadConfig loads config from yaml file.
 func LoadConfig(path string) *Config {
 	var c Config
 	if path == "" {
@@ -36,6 +38,7 @@ func LoadConfig(path string) *Config {
 	return &c
 }
 
+// Validate validates configuration.
 func (c *Config) Validate() error {
 	if c.InputFile == "" {
 		return errors.New("input file is empty")

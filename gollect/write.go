@@ -7,6 +7,7 @@ import (
 	"io"
 )
 
+// Write writes filtered and formatted code to io.Writer.
 func Write(w io.Writer, program *Program) error {
 	fset, iset, packages := program.FileSet(), program.ImportSet(), program.Packages()
 

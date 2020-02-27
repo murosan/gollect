@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 )
 
+// Program is a container of information that is neccessary across packages.
 type Program struct {
 	fset     *token.FileSet
 	iset     ImportSet
@@ -13,6 +14,7 @@ type Program struct {
 	glob     string
 }
 
+// NewProgram returns new Program.
 func NewProgram(glob string) *Program {
 	return &Program{
 		fset:     token.NewFileSet(),
@@ -22,10 +24,16 @@ func NewProgram(glob string) *Program {
 	}
 }
 
+// FileSet returns fileset.
 func (p *Program) FileSet() *token.FileSet { return p.fset }
+
+// ImportSet returns import set.
 func (p *Program) ImportSet() ImportSet    { return p.iset }
+
+// Packages returns packages.
 func (p *Program) Packages() Packages      { return p.packages }
 
+// FilePaths returns filepaths of glob.
 func (p *Program) FilePaths() []string {
 	paths, err := filepath.Glob(p.glob)
 	if err != nil {

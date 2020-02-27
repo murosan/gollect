@@ -8,6 +8,9 @@ import (
 	"golang.org/x/tools/go/ast/astutil"
 )
 
+// FilterDecls returns new slice that consists of used declarations.
+// All unsed declaration will be removed.
+// Be careful this method manipulates decls directly.
 func FilterDecls(deps Dependencies, decls []ast.Decl) (res []ast.Decl) {
 	for _, decl := range decls {
 		switch decl := decl.(type) {
@@ -85,6 +88,11 @@ func isUsedFuncDecl(deps Dependencies, decl *ast.FuncDecl) bool {
 	return id != nil && deps.IsUsed(id.Name)
 }
 
+// RemoveExternalIdents removes external package's selectors.
+//
+//   fmt.Println() → fmt.Println() // keep builtin packages
+//   mypkg.SomeFunc() → SomeFunc() // remove package selector
+//
 func RemoveExternalIdents(node ast.Node, pkg *Package) {
 	astutil.Apply(node, func(cr *astutil.Cursor) bool {
 		switch n := cr.Node().(type) {

@@ -9,6 +9,8 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
+// ParseAll parses all ast files and sets to Program's map.
+// This also parses external imported package's ast.
 func ParseAll(program *Program) {
 	paths := []string{"main"}
 	for ; len(paths) > 0; paths = paths[1:] {
@@ -35,6 +37,7 @@ func ParseAll(program *Program) {
 	}
 }
 
+// ParseAst parses ast and pushes to files slice.
 func ParseAst(fset *token.FileSet, p *Package, paths ...string) {
 	for _, path := range paths {
 		f, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
@@ -46,11 +49,13 @@ func ParseAst(fset *token.FileSet, p *Package, paths ...string) {
 	}
 }
 
+// FindFilePaths finds filepaths from package path.
+// https://pkg.go.dev/golang.org/x/tools/go/packages?tab=doc#example-package
 func FindFilePaths(path string) (paths []string) {
 	cfg := &packages.Config{Mode: packages.NeedFiles | packages.NeedSyntax}
 	pkgs, err := packages.Load(cfg, path)
 	if err != nil {
-		panic(fmt.Errorf("load: %w\n", err))
+		panic(fmt.Errorf("load: %w", err))
 	}
 
 	if packages.PrintErrors(pkgs) > 0 {
@@ -63,6 +68,7 @@ func FindFilePaths(path string) (paths []string) {
 	return
 }
 
+// NextPackagePaths returns list of imported package paths.
 func NextPackagePaths(p *Package) (paths []string) {
 	m := make(map[string]interface{})
 	for _, f := range p.files {
