@@ -9,7 +9,7 @@ import (
 )
 
 // FilterDecls returns new slice that consists of used declarations.
-// All unsed declaration will be removed.
+// All unused declaration will be removed.
 // Be careful this method manipulates decls directly.
 func FilterDecls(deps Dependencies, decls []ast.Decl) (res []ast.Decl) {
 	for _, decl := range decls {

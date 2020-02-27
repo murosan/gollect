@@ -5,7 +5,7 @@ import (
 )
 
 // Dependencies is a map of Dependency.
-// The key is ident name of the Dedpendency.
+// The key is ident name of the Dependency.
 type Dependencies map[string]*Dependency
 
 // Get returns Dependency.
@@ -92,12 +92,12 @@ func (deps Dependencies) String() (s string) {
 
 // Dependency represents what the identifier is depending on.
 type Dependency struct {
-	name     string // name of identifier
-	imports  ImportSet // imports the name is depending on
+	name     string                 // name of identifier
+	imports  ImportSet              // imports the name is depending on
 	internal map[string]*Dependency // Dependencies inside same package
-	external ExternalDependencySet // Dependencies of external package
+	external ExternalDependencySet  // Dependencies of external package
 
-	used      bool // lazily changes to true when Use method is called
+	used      bool // lazily changed to true by Use method
 	forceUsed bool // not using for now
 }
 
@@ -151,7 +151,7 @@ func (d *Dependency) Use() (v []ExternalDependencySet) {
 func (d *Dependency) IsUsed() bool { return d.forceUsed || d.used }
 
 type (
-	// ExternalDependency represetns external package's dependency infomation.
+	// ExternalDependency represents external package's dependency information.
 	ExternalDependency struct {
 		path, name string
 	}

@@ -28,10 +28,10 @@ func NewProgram(glob string) *Program {
 func (p *Program) FileSet() *token.FileSet { return p.fset }
 
 // ImportSet returns import set.
-func (p *Program) ImportSet() ImportSet    { return p.iset }
+func (p *Program) ImportSet() ImportSet { return p.iset }
 
 // Packages returns packages.
-func (p *Program) Packages() Packages      { return p.packages }
+func (p *Program) Packages() Packages { return p.packages }
 
 // FilePaths returns filepaths of glob.
 func (p *Program) FilePaths() []string {

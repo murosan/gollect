@@ -8,7 +8,7 @@ import (
 )
 
 type (
-	// Import represetns import.
+	// Import represents import.
 	Import struct {
 		alias, name, path string
 		used              bool

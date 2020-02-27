@@ -6,7 +6,7 @@ import (
 )
 
 type (
-	// Package represets analyzing information.
+	// Package represents analyzing information.
 	Package struct {
 		path    string                 // package path
 		files   []*ast.File            // container of ast files
@@ -34,7 +34,7 @@ func NewPackage(path string, imports ImportSet) *Package {
 	}
 }
 
-// InitObjects compiles all files' objests into one map.
+// InitObjects compiles all files' objects into one map.
 // This is called after parsing all ast files and before
 // start analyzing dependencies.
 func (pkg *Package) InitObjects() {

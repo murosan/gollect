@@ -8,7 +8,7 @@ import (
 	"go/types"
 )
 
-// AnalyzeForeach executes analying dependency for each packages.
+// AnalyzeForeach executes analyzing dependency for each packages.
 func AnalyzeForeach(program *Program) {
 	for _, pkg := range program.Packages() {
 		ExecCheck(program.FileSet(), pkg)
