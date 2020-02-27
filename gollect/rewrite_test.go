@@ -143,13 +143,13 @@ func TestRemoveExternalIdents(t *testing.T) {
 
 	pkg := NewPackage("main", nil)
 
-	id1 := ast.NewIdent("fmt")
-	id2 := ast.NewIdent("ext")
+	id1, name1 := ast.NewIdent("fmt"), "Println"
+	id2, name2 := ast.NewIdent("ext"), "SomeFunc"
 
 	pkg.info.Uses[id1] = pkgName(id1, "fmt", "fmt")
 	pkg.info.Uses[id1] = pkgName(id2, "ext", "github.com/murosan/abc")
 
-	funcDecl := func(ident *ast.Ident) *ast.FuncDecl {
+	funcDecl := func(ident *ast.Ident, name string) *ast.FuncDecl {
 		return &ast.FuncDecl{
 			Name: ident,
 			Body: &ast.BlockStmt{
@@ -158,7 +158,7 @@ func TestRemoveExternalIdents(t *testing.T) {
 						X: &ast.CallExpr{
 							Fun: &ast.SelectorExpr{
 								X:   ident,
-								Sel: ast.NewIdent("FuncName"),
+								Sel: ast.NewIdent(name),
 							},
 						},
 					},
@@ -167,26 +167,36 @@ func TestRemoveExternalIdents(t *testing.T) {
 		}
 	}
 
-	keepWant := funcDecl(id1)
-	replacedWant := funcDecl(id2)
-	{
-		caller := replacedWant.Body.List[0].(*ast.ExprStmt).X.(*ast.CallExpr)
-		caller.Fun = caller.Fun.(*ast.SelectorExpr).Sel
+	decls := []ast.Decl{
+		funcDecl(id1, name1),
+		funcDecl(id2, name2),
 	}
-
-	decls := []ast.Decl{funcDecl(id1), funcDecl(id2)}
 	file := &ast.File{Decls: decls}
 	RemoveExternalIdents(file, pkg)
 
-	if len(file.Decls) != 2 {
+	if len(file.Decls) != 2 || !reflect.DeepEqual(decls, file.Decls) {
 		t.FailNow()
 	}
 
-	if reflect.DeepEqual(file.Decls[0], keepWant) {
-		t.Errorf("[want]\n%v\n[actual]\n%v\n", keepWant, file.Decls[0])
+	{
+		// no panic
+		head := decls[0].(*ast.FuncDecl).Body.List[0]
+		cl := head.(*ast.ExprStmt).X.(*ast.CallExpr)
+		n := cl.Fun.(*ast.Ident).Name
+
+		if n == id1.Name {
+			t.Errorf("want: %s, actual: %s", id1.Name, n)
+		}
 	}
 
-	if reflect.DeepEqual(file.Decls[1], replacedWant) {
-		t.Errorf("[want]\n%v\n[actual]\n%v\n", replacedWant, file.Decls[1])
+	{
+		// no panic
+		head := decls[1].(*ast.FuncDecl).Body.List[0]
+		cl := head.(*ast.ExprStmt).X.(*ast.CallExpr)
+		n := cl.Fun.(*ast.SelectorExpr).X.(*ast.Ident).Name
+
+		if n == name2 {
+			t.Errorf("want: %s, actual: %s", name2, n)
+		}
 	}
 }
