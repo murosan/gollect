@@ -3,6 +3,7 @@ install:
 
 clean:
 	go mod tidy
+	go clean
 
 test:
 	go test .
