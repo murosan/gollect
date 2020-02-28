@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/murosan/gollect/gollect"
+	"github.com/murosan/gollect"
 )
 
 var (

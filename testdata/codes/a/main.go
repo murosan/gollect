@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/murosan/gollect/gollect/testdata/codes/pkg1"
+	"github.com/murosan/gollect/testdata/codes/pkg1"
 )
 
 // comment inside main should be left

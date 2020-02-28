@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/murosan/gollect/gollect/testdata"
+	"github.com/murosan/gollect/testdata"
 )
 
 func TestResolveDependency(t *testing.T) {

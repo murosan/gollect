@@ -3,7 +3,7 @@ package pkg1
 import (
 	"fmt"
 
-	p "github.com/murosan/gollect/gollect/testdata/codes/pkg2"
+	p "github.com/murosan/gollect/testdata/codes/pkg2"
 )
 
 const (

@@ -19,6 +19,7 @@ var (
 	}()
 	base = filepath.Join(cwd, "testdata", "codes")
 
+	// FilePaths a set of paths used in test.
 	FilePaths = struct {
 		A, B, Pkg1, Pkg2, Write string
 	}{
@@ -29,8 +30,9 @@ var (
 		Write: filepath.Join(base, "write", "*.go"),
 	}
 
-	pkgBase = "github.com/murosan/gollect/gollect/testdata/codes"
+	pkgBase = "github.com/murosan/gollect/testdata/codes"
 
+	// PackagePaths a set of package paths used in test.
 	PackagePaths = struct {
 		Pkg1, Pkg2 string
 	}{

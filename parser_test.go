@@ -7,7 +7,7 @@ package gollect
 import (
 	"testing"
 
-	"github.com/murosan/gollect/gollect/testdata"
+	"github.com/murosan/gollect/testdata"
 )
 
 func TestParseAll(t *testing.T) {

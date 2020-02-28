@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/murosan/gollect/gollect/testdata"
+	"github.com/murosan/gollect/testdata"
 )
 
 func TestWrite(t *testing.T) {
