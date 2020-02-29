@@ -17,6 +17,13 @@ test-c:
 lint:
 	go fmt .
 	go vet .
-	golint -set_exit_status .
+	staticcheck .
+	golint .
 
-ci: clean lint test
+ci:
+	go mod download
+	go vet .
+	golint -set_exit_status .
+	staticcheck .
+	test -z "$(shell gofmt -s -l .| grep -Ev 'testdata/codes|out/')"
+	go test -race .
