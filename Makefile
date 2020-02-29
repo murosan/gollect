@@ -5,7 +5,7 @@ install-tools:
 	go mod download
 	grep _ tools/tools.go | \
 	awk '{print $$2}' | \
-	xargs -tI % sh -c 'go install % && go get -u %'
+	xargs -tI % go install %
 
 clean:
 	go mod tidy
@@ -26,12 +26,13 @@ test-ci: clean
 format:
 	go fmt .
 
-format-keep:
-	test -z "$(shell gofmt -s -l .| grep -Ev 'testdata/codes|out/')"
-
-lint-ci:
+lint: format
 	go vet .
 	staticcheck .
 	golint .
 
-lint: format lint-ci
+# staticcheck fails on Github Actions
+# https://github.com/murosan/gollect/runs/476703219?check_suite_focus=true
+lint-ci:
+	go vet .
+	golint .
