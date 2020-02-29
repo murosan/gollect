@@ -17,8 +17,5 @@ jobs:
       - name: Check format
         run: test -z "$(gofmt -s -l .| grep -Ev 'testdata/codes|out/')"
 
-      - name: Check syntax
-        run: make install-tools && make lint-ci
-
       - name: Test
         run: make test-ci

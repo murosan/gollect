@@ -23,16 +23,8 @@ test-c:
 test-ci: clean
 	go test -race .
 
-format:
+lint:
 	go fmt .
-
-lint: format
 	go vet .
 	staticcheck .
-	golint .
-
-# staticcheck fails on Github Actions
-# https://github.com/murosan/gollect/runs/476703219?check_suite_focus=true
-lint-ci:
-	go vet .
 	golint .
