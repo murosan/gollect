@@ -2,6 +2,7 @@ install:
 	go install ./cmd/gollect
 
 install-tools:
+	go mod download
 	grep _ tools/tools.go | \
 	awk '{print $$2}' | \
 	xargs -tI % sh -c 'go install % && go get -u %'
