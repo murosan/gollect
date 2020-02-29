@@ -4,7 +4,7 @@ install:
 install-tools:
 	grep _ tools/tools.go | \
 	awk '{print $$2}' | \
-	xargs -tI % go install % && go get %
+	xargs -tI % sh -c 'go install % && go get %'
 
 clean:
 	go mod tidy
