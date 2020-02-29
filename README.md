@@ -1,5 +1,7 @@
 # gollect
 
+![CI](https://github.com/murosan/gollect/workflows/CI/badge.svg?branch=master)
+
 A tool for competitive programming in Go.
 
 [README - 日本語](./docs/README_ja.md)
