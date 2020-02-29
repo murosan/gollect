@@ -1,6 +1,11 @@
 install:
 	go install ./cmd/gollect
 
+install-tools:
+	grep _ tools/tools.go | \
+	awk '{print $$2}' | \
+	xargs -tI % go install %
+
 clean:
 	go mod tidy
 	go clean
@@ -14,16 +19,18 @@ test-c:
 	go tool cover -html=./out/cover.out -o ./out/cover.html
 	open ./out/cover.html
 
-lint:
+format:
 	go fmt .
+
+format-keep:
+	test -z "$(shell gofmt -s -l .| grep -Ev 'testdata/codes|out/')"
+
+lint:
 	go vet .
 	staticcheck .
 	golint .
 
-ci:
-	go mod download
-	go vet .
-	golint -set_exit_status .
-	staticcheck .
-	test -z "$(shell gofmt -s -l .| grep -Ev 'testdata/codes|out/')"
+lint-w: format lint
+
+ci: clean install-tools format-keep lint
 	go test -race .
