@@ -18,7 +18,7 @@ jobs:
         run: make format-keep
 
       - name: Check syntax
-        run: make lint-ci
+        run: install-tools && make lint-ci
 
       - name: Test
         run: make test-ci
