@@ -5,7 +5,11 @@
 package gollect
 
 // Main executes whole program.
-func Main(config *Config) {
+func Main(config *Config) error {
+	if err := config.Validate(); err != nil {
+		return err
+	}
+
 	p := NewProgram(config.InputFile)
 
 	// parse ast files and check dependencies
@@ -23,9 +27,11 @@ func Main(config *Config) {
 	}
 
 	if err := Write(w, p); err != nil {
-		panic(err)
+		return err
 	}
 	if err := w.writeForeach(); err != nil {
-		panic(err)
+		return err
 	}
+
+	return nil
 }
