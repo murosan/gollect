@@ -19,4 +19,4 @@ jobs:
         run: test -z "$(gofmt -s -l .| grep -Ev 'testdata/codes|out/')"
 
       - name: Test
-        run: make test-ci
+        run: make ci

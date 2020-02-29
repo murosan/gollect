@@ -1,3 +1,6 @@
+GOPATH = $(shell go env GOPATH)
+GOBIN = $(GOPATH)/bin
+
 install:
 	go install ./cmd/gollect
 
@@ -20,11 +23,14 @@ test-c:
 	go tool cover -html=./out/cover.out -o ./out/cover.html
 	open ./out/cover.html
 
-test-ci: clean
-	go test -race .
-
-lint:
+lint: install-tools
 	go fmt .
 	go vet .
-	staticcheck .
-	golint .
+	$(GOBIN)/staticcheck .
+	$(GOBIN)/golint .
+
+ci: clean install-tools
+	go vet .
+	$(GOBIN)/staticcheck .
+	$(GOBIN)/golint .
+	go test -race .
