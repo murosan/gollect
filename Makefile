@@ -13,3 +13,10 @@ test-c:
 	go test -cover -coverprofile ./out/cover.out .
 	go tool cover -html=./out/cover.out -o ./out/cover.html
 	open ./out/cover.html
+
+lint:
+	go fmt .
+	go vet .
+	golint -set_exit_status .
+
+ci: clean lint test
