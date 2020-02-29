@@ -5,23 +5,25 @@
 package gollect
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/murosan/gollect/testdata"
 )
 
 func TestParseAll(t *testing.T) {
-	program := NewProgram(testdata.FilePaths.A)
+	program := NewProgram()
+	paths, _ := filepath.Glob(testdata.FilePaths.A)
 
 	if program.Packages() == nil ||
 		program.ImportSet() == nil ||
 		len(program.ImportSet()) != 0 ||
-		len(program.FilePaths()) == 0 ||
+		len(paths) == 0 ||
 		len(program.Packages()) != 0 {
 		t.Fatalf("something is wrong. %v", program)
 	}
 
-	ParseAll(program)
+	ParseAll(program, "main", paths)
 	packages := program.Packages()
 
 	if len(packages) != 3 {

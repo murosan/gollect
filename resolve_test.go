@@ -5,6 +5,7 @@
 package gollect
 
 import (
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -12,8 +13,9 @@ import (
 )
 
 func TestResolveDependency(t *testing.T) {
-	program := NewProgram(testdata.FilePaths.A)
-	ParseAll(program)
+	program := NewProgram()
+	paths, _ := filepath.Glob(testdata.FilePaths.A)
+	ParseAll(program, "main", paths)
 	AnalyzeForeach(program)
 
 	{

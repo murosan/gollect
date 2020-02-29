@@ -15,25 +15,30 @@ import (
 
 // ParseAll parses all ast files and sets to Program's map.
 // This also parses external imported package's ast.
-func ParseAll(program *Program) {
-	paths := []string{"main"}
-	for ; len(paths) > 0; paths = paths[1:] {
-		pp := paths[0]
-		if _, ok := program.Packages().Get(pp); ok {
+func ParseAll(
+	program *Program,
+	initialPackage string,
+	initialFilePaths []string,
+) {
+	find := func(path string) []string {
+		if path == initialPackage {
+			return initialFilePaths
+		}
+		return FindFilePaths(path)
+	}
+
+	for paths := []string{initialPackage}; len(paths) > 0; paths = paths[1:] {
+		path := paths[0]
+		if _, ok := program.Packages().Get(path); ok {
 			continue
 		}
 
-		var fp []string
-		if pp == "main" {
-			fp = program.FilePaths()
-		} else {
-			fp = FindFilePaths(pp)
-		}
+		pkg := NewPackage(path, program.ImportSet())
+		program.Packages().Set(path, pkg)
 
-		pkg := NewPackage(pp, program.ImportSet())
-		program.Packages().Set(pp, pkg)
-
+		fp := find(path)
 		ParseAst(program.FileSet(), pkg, fp...)
+
 		if len(pkg.files) == 0 {
 			panic(fmt.Sprintf("there are no files. paths=%v", fp))
 		}

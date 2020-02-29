@@ -4,16 +4,26 @@
 
 package gollect
 
+import (
+	"fmt"
+	"path/filepath"
+)
+
 // Main executes whole program.
 func Main(config *Config) error {
 	if err := config.Validate(); err != nil {
 		return err
 	}
 
-	p := NewProgram(config.InputFile)
+	p := NewProgram()
+
+	paths, err := filepath.Glob(config.InputFile)
+	if err != nil {
+		return fmt.Errorf("parse glob: %w", err)
+	}
 
 	// parse ast files and check dependencies
-	ParseAll(p)
+	ParseAll(p, "main", paths)
 	AnalyzeForeach(p)
 
 	// mark all used declarations

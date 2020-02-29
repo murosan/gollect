@@ -6,6 +6,7 @@ package gollect
 
 import (
 	"bytes"
+	"path/filepath"
 	"testing"
 
 	"github.com/murosan/gollect/testdata"
@@ -14,8 +15,9 @@ import (
 func TestWrite(t *testing.T) {
 	var buf bytes.Buffer
 
-	program := NewProgram(testdata.FilePaths.Write)
-	ParseAll(program)
+	program := NewProgram()
+	paths, _ := filepath.Glob(testdata.FilePaths.Write)
+	ParseAll(program, "main", paths)
 	AnalyzeForeach(program)
 
 	next := []ExternalDependencySet{{}}
