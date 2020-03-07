@@ -20,7 +20,10 @@ func FilterDecls(deps Dependencies, decls []ast.Decl) (res []ast.Decl) {
 		switch decl := decl.(type) {
 		case *ast.GenDecl:
 			filterGenDecl(deps, decl)
-			if len(decl.Specs) != 0 {
+			if l := len(decl.Specs); l != 0 {
+				if l == 1 {
+					decl.Lparen, decl.Rparen = 0, 0 // delete '(' and ')'
+				}
 				res = append(res, decl)
 			}
 
