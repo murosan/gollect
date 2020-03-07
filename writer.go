@@ -40,7 +40,7 @@ type stdoutWriter struct{ io.Writer }
 
 func (w *stdoutWriter) Write(p []byte) (int, error) {
 	f := os.Stdout
-	defer f.Close()
+	defer closer(f)
 	return f.Write(p)
 }
 
@@ -59,13 +59,13 @@ type fileWriter struct {
 }
 
 func (w *fileWriter) Write(p []byte) (int, error) {
-	file, err := os.OpenFile(w.path, os.O_WRONLY|os.O_CREATE, 0644)
+	file, err := os.Create(w.path)
 	if err != nil {
 		return 0, err
 	}
-	defer file.Close()
+	defer closer(file)
 
-	return file.Write(p)
+	return file.WriteAt(p, 0)
 }
 
 // io.Writer provider
@@ -81,5 +81,11 @@ func (p *writerProviderImpl) provide(s string) io.Writer {
 		return &clipboardWriter{}
 	default:
 		return &fileWriter{path: s}
+	}
+}
+
+func closer(c io.Closer) {
+	if err := c.Close(); err != nil {
+		panic(err)
 	}
 }
