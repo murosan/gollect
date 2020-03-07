@@ -46,10 +46,8 @@ func Write(w io.Writer, program *Program) error {
 					if err := format.Node(w, fset, decls); err != nil {
 						return fmt.Errorf("format: %w", err)
 					}
-					if _, ok := decls[len(decls)-1].(*ast.GenDecl); !ok {
-						if _, err := w.Write([]byte("\n")); err != nil {
-							return err
-						}
+					if _, err := w.Write([]byte("\n")); err != nil {
+						return err
 					}
 				}
 			}
