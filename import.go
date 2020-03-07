@@ -92,15 +92,22 @@ func (s ImportSet) GetOrCreate(alias, name, path string) *Import {
 
 // ToDecl creates ast.GenDecl and returns it.
 func (s ImportSet) ToDecl() *ast.GenDecl {
-	d := &ast.GenDecl{
-		Tok:    token.IMPORT,
-		Lparen: 1, // if zero, imports will not be sorted
-	}
+	d := &ast.GenDecl{Tok: token.IMPORT}
 
 	for _, i := range s {
 		if i.IsUsed() && i.IsBuiltin() {
 			d.Specs = append(d.Specs, i.ToSpec())
 		}
+	}
+
+	if len(d.Specs) > 1 {
+		// if there is one import and Lparen value is 0,
+		// generated import will be in a single line.
+		// ex. import "fmt"
+		//
+		// if there are multiple imports, Lparen value should not be 0
+		// to sort them by format.Node().
+		d.Lparen = 1
 	}
 
 	return d

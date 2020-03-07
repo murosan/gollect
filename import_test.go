@@ -151,12 +151,6 @@ func TestImportSet_ToDecl(t *testing.T) {
 	set.Add(i4)
 	set.Add(i5)
 
-	set.Add(i1)
-	set.Add(i2)
-	set.Add(i3)
-	set.Add(i4)
-	set.Add(i5)
-
 	want := &ast.GenDecl{
 		Tok:    token.IMPORT,
 		Lparen: 1,
@@ -164,31 +158,49 @@ func TestImportSet_ToDecl(t *testing.T) {
 	}
 	actual := set.ToDecl()
 
-	eq := func(a, b *ast.GenDecl) bool {
-		if !reflect.DeepEqual(a.Doc, b.Doc) ||
-			a.TokPos != b.TokPos ||
-			a.Tok != b.Tok ||
-			a.Lparen != b.Lparen ||
-			a.Rparen != b.Rparen ||
-			len(a.Specs) != len(b.Specs) ||
-			((a.Specs == nil) != (b.Specs == nil)) {
-			return false
-		}
-
-		for i := range a.Specs {
-			a, ok1 := a.Specs[i].(*ast.ImportSpec)
-			b, ok2 := b.Specs[i].(*ast.ImportSpec)
-
-			// must be *ast.ImportSpec
-			return ok1 && ok2 &&
-				((a.Name == nil && b.Name == nil) || (a.Name.Name == b.Name.Name)) &&
-				(a.Path.Value == b.Path.Value)
-		}
-
-		return true
-	}
-
-	if !eq(want, actual) {
+	if !eqImportGenDecl(want, actual) {
 		t.Errorf("\nwant:   %v\nactual: %v", want, actual)
 	}
+}
+
+func TestImportSet_ToDecl2(t *testing.T) {
+	set := make(ImportSet)
+	i1 := NewImport("", "fmt", "fmt")
+	i1.Use()
+	set.Add(i1)
+
+	want := &ast.GenDecl{
+		Tok:    token.IMPORT,
+		Lparen: 0,
+		Specs:  []ast.Spec{i1.ToSpec()},
+	}
+	actual := set.ToDecl()
+
+	if !eqImportGenDecl(want, actual) {
+		t.Errorf("\nwant:   %v\nactual: %v", want, actual)
+	}
+}
+
+func eqImportGenDecl(a, b *ast.GenDecl) bool {
+	if !reflect.DeepEqual(a.Doc, b.Doc) ||
+		a.TokPos != b.TokPos ||
+		a.Tok != b.Tok ||
+		a.Lparen != b.Lparen ||
+		a.Rparen != b.Rparen ||
+		len(a.Specs) != len(b.Specs) ||
+		((a.Specs == nil) != (b.Specs == nil)) {
+		return false
+	}
+
+	for i := range a.Specs {
+		a, ok1 := a.Specs[i].(*ast.ImportSpec)
+		b, ok2 := b.Specs[i].(*ast.ImportSpec)
+
+		// must be *ast.ImportSpec
+		return ok1 && ok2 &&
+			((a.Name == nil && b.Name == nil) || (a.Name.Name == b.Name.Name)) &&
+			(a.Path.Value == b.Path.Value)
+	}
+
+	return true
 }
