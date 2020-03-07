@@ -18,7 +18,7 @@ func TestWrite(t *testing.T) {
 		want string
 	}{
 		{
-			path: testdata.FilePaths.Write,
+			path: testdata.FilePaths.Write1,
 			want: `package main
 
 import (

@@ -24,13 +24,13 @@ test-c:
 	open ./out/cover.html
 
 lint: install-tools
-	go fmt .
+	go fmt . ./testdata
 	go vet .
 	$(GOBIN)/staticcheck .
-	$(GOBIN)/golint .
+	$(GOBIN)/golint -set_exit_status .
 
 ci: clean install-tools
 	go vet .
 	$(GOBIN)/staticcheck .
-	$(GOBIN)/golint .
+	$(GOBIN)/golint -set_exit_status .
 	go test -race .

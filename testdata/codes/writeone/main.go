@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/murosan/gollect/testdata/codes/write/pkg"
+	"github.com/murosan/gollect/testdata/codes/writeone/pkg"
 )
 
 func main() {
