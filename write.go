@@ -25,7 +25,9 @@ func Write(w io.Writer, program *Program) error {
 	RemoveExternalIdents(main, mainPackage)
 
 	// build new import decl and push it to head of decls
-	main.Decls = append([]ast.Decl{iset.ToDecl()}, main.Decls...)
+	if ispec := iset.ToDecl(); len(ispec.Specs) != 0 {
+		main.Decls = append([]ast.Decl{ispec}, main.Decls...)
+	}
 
 	if err := format.Node(w, fset, main); err != nil {
 		return fmt.Errorf("format: %w", err)
