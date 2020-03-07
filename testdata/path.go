@@ -32,7 +32,7 @@ var (
 		B:      filepath.Join(base, "b", "*.go"),
 		Pkg1:   filepath.Join(base, "pkg1", "*.go"),
 		Pkg2:   filepath.Join(base, "pkg2", "*.go"),
-		Write1: filepath.Join(base, "write", "*.go"),
+		Write1: filepath.Join(base, "writeone", "*.go"),
 		Write2: filepath.Join(base, "writetwo", "*.go"),
 	}
 
