@@ -64,9 +64,7 @@ The code you can submit will be outputted as follow:
 ```go
 package main
 
-import (
-	"fmt"
-)
+import "fmt"
 
 func main() {
 	var a, b int
