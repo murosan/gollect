@@ -60,9 +60,7 @@ $ gollect -main ./main.go
 ```go
 package main
 
-import (
-	"fmt"
-)
+import "fmt"
 
 func main() {
 	var a, b int
