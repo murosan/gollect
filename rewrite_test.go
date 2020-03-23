@@ -19,14 +19,26 @@ func TestFilterDecls(t *testing.T) {
 	d3 := NewDependency("d3")
 	d4 := NewDependency("d4")
 	d5 := NewDependency("d5")
+	f1 := NewDependency(d4.name + "." + "funcA")
+	f2 := NewDependency(d4.name + "." + "funcB")
+	f3 := NewDependency(d3.name + "." + "funcC")
+	f4 := NewDependency(d3.name + "." + "funcD")
 	deps.Set(d1)
 	deps.Set(d2)
 	deps.Set(d3)
 	deps.Set(d4)
 	deps.Set(d5)
+	deps.Set(f1)
+	deps.Set(f2)
+	deps.Set(f3)
+	deps.Set(f4)
+	d4.SetMethod(f1)
+	d4.SetMethod(f2)
 	d1.Use()
 	d2.Use()
 	d4.Use()
+	f1.Use()
+	f2.Use()
 
 	sut := []ast.Decl{
 		&ast.GenDecl{
@@ -103,7 +115,7 @@ func TestFilterDecls(t *testing.T) {
 	actual := FilterDecls(deps, sut)
 
 	if len(actual) != 5 {
-		t.Errorf("length is not %d. actual:\n%v", len(actual), actual)
+		t.Errorf("length is not 5. actual: %v", actual)
 	}
 
 	if actual[0] != sut[2] {
@@ -112,7 +124,7 @@ func TestFilterDecls(t *testing.T) {
 
 	specs := sut[2].(*ast.GenDecl).Specs
 	if len(specs) != 1 {
-		t.Errorf("length is not %d. actual:\n%v", len(specs), specs)
+		t.Errorf("length is not 1. actual: %v", specs)
 	}
 
 	if n := specs[0].(*ast.ValueSpec).Names[0].Name; n != d2.name {

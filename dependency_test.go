@@ -255,12 +255,6 @@ func TestDependency_IsUsed(t *testing.T) {
 	if !dep.IsUsed() {
 		t.Errorf("fail")
 	}
-
-	dep2 := NewDependency("name2")
-	dep2.forceUsed = true
-	if !dep2.IsUsed() {
-		t.Errorf("fail")
-	}
 }
 
 func TestExternalDependencySet(t *testing.T) {

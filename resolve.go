@@ -10,6 +10,7 @@ import (
 	"go/importer"
 	"go/token"
 	"go/types"
+	"strings"
 )
 
 // AnalyzeForeach executes analyzing dependency for each packages.
@@ -50,58 +51,89 @@ func resolve(pkg *Package, decl ast.Decl) {
 				switch spec := spec.(type) {
 				case *ast.ValueSpec:
 					for i, id := range spec.Names {
-						if pkg.objects[id.Name].Decl == spec {
-							pkg.Dependencies().GetOrCreate(id.Name)
-							setDependency(pkg, id, spec.Values[i])
+						name := id.Name
+						if pkg.objects[name].Decl == spec {
+							pkg.Dependencies().GetOrCreate(name)
+							setDependency(pkg, name, spec.Values[i])
 						}
 					}
 				case *ast.TypeSpec:
-					pkg.Dependencies().GetOrCreate(spec.Name.Name)
-					setDependency(pkg, spec.Name, spec.Type)
+					id := spec.Name.Name
+					pkg.Dependencies().GetOrCreate(id)
+					setDependency(pkg, id, spec.Type)
+					if node.Doc != nil {
+						for _, doc := range node.Doc.List {
+							if strings.HasPrefix(doc.Text, keepMethods.String()) {
+								pkg.Dependencies().TurnOnKeepMethodOption(id)
+							}
+						}
+					}
 				}
 			}
 		}
 
 	case *ast.FuncDecl:
-		id := node.Name
+		id := node.Name.Name
 
 		if node.Recv != nil {
+			var typeID *ast.Ident
 			switch expr := node.Recv.List[0].Type.(type) {
 			case *ast.Ident:
-				id = expr
+				typeID = expr
 			case *ast.StarExpr:
-				id = expr.X.(*ast.Ident)
+				typeID = expr.X.(*ast.Ident)
+			}
+
+			if typeID != nil {
+				id = typeID.Name + "." + id
+				pkg.Dependencies().SetMethod(typeID.Name, id)
+				pkg.Dependencies().SetInternal(id, typeID.Name)
 			}
 		}
 
-		if id == nil {
-			break
-		}
-
-		if _, ok := pkg.objects[id.Name]; ok {
-			pkg.Dependencies().GetOrCreate(id.Name)
-			setDependency(pkg, id, node.Body)
-		}
+		pkg.Dependencies().GetOrCreate(id)
+		setDependency(pkg, id, node)
 	}
 }
 
-func setDependency(pkg *Package, id *ast.Ident, node ast.Node) {
+func setDependency(pkg *Package, id string, node ast.Node) {
 	ast.Inspect(node, func(node ast.Node) bool {
 		switch node := node.(type) {
 		case *ast.SelectorExpr:
 			if i, ok := node.X.(*ast.Ident); ok && i != nil {
-				if pkgName, ok := pkg.info.Uses[i].(*types.PkgName); ok {
-					p := pkgName.Imported()
+				switch uses := pkg.info.Uses[i].(type) {
+				case *types.PkgName:
+					p := uses.Imported()
 					alias, name, path := i.Name, p.Name(), p.Path()
 					if name == alias {
 						alias = ""
 					}
 
 					i := pkg.imports.GetOrCreate(alias, name, path)
-					pkg.Dependencies().SetImport(id.Name, i)
+					pkg.Dependencies().SetImport(id, i)
 
 					if !isBuiltinPackage(path) {
-						pkg.Dependencies().SetExternal(id.Name, path, node.Sel.Name)
+						pkg.Dependencies().SetExternal(id, path, node.Sel.Name)
+					}
+
+				case *types.Var:
+					var named *types.Named
+					switch nmd := uses.Type().(type) {
+					case *types.Pointer:
+						named = nmd.Elem().(*types.Named)
+					case *types.Named:
+						named = nmd
+					}
+
+					if named != nil {
+						if path := named.Obj().Pkg().Path(); !isBuiltinPackage(path) {
+							// set if node.Sel is a method (not a struct field value).
+							switch pkg.info.Uses[node.Sel].Type().(type) {
+							case *types.Signature:
+								key := named.Obj().Name() + "." + node.Sel.Name
+								pkg.Dependencies().SetExternal(id, path, key)
+							}
+						}
 					}
 				}
 			}
@@ -121,7 +153,7 @@ func setDependency(pkg *Package, id *ast.Ident, node ast.Node) {
 
 			switch obj := uses.(type) {
 			case *types.Const, *types.Var, *types.Func, *types.TypeName:
-				pkg.Dependencies().SetInternal(id.Name, obj.Name())
+				pkg.Dependencies().SetInternal(id, obj.Name())
 			}
 		}
 

@@ -19,9 +19,7 @@ func (deps Dependencies) Get(name string) (*Dependency, bool) {
 }
 
 // Set sets Dependency.
-func (deps Dependencies) Set(d *Dependency) {
-	deps[d.name] = d
-}
+func (deps Dependencies) Set(d *Dependency) { deps[d.name] = d }
 
 // GetOrCreate returns Dependency.
 // If no Dependency found, creates new one.
@@ -50,6 +48,17 @@ func (deps Dependencies) SetImport(caller string, i *Import) {
 	deps.GetOrCreate(caller).SetImport(i)
 }
 
+// SetMethod lets caller set method.
+func (deps Dependencies) SetMethod(caller string, target string) {
+	c, t := deps.GetOrCreate(caller), deps.GetOrCreate(target)
+	c.SetMethod(t)
+}
+
+// TurnOnKeepMethodOption lets caller set keepMethod option to true
+func (deps Dependencies) TurnOnKeepMethodOption(caller string) {
+	deps.GetOrCreate(caller).TurnOnKeepMethodOption()
+}
+
 // Use set dependency's use state to true.
 // Panics if deps has no key. Therefore, make sure
 // to set all dependencies before.
@@ -70,7 +79,7 @@ func (deps Dependencies) IsUsed(key string) bool {
 
 func (deps Dependencies) String() (s string) {
 	for _, dep := range deps {
-		var internal, external, imports string
+		var internal, external, imports, methods string
 		for _, d := range dep.internal {
 			internal += "\n|     " + d.name
 		}
@@ -80,15 +89,19 @@ func (deps Dependencies) String() (s string) {
 		for _, i := range dep.imports {
 			imports += "\n|     " + i.String()
 		}
+		for _, m := range dep.methods {
+			methods += "\n|     " + m.String()
+		}
 
 		s += fmt.Sprintf(`| Ident: %s (used = %v)
 |   [internal]%s
 |   [external]%s
 |   [import]%s
+|   [methods]%s
 `,
 			dep.name,
 			dep.IsUsed(),
-			internal, external, imports,
+			internal, external, imports, methods,
 		)
 	}
 	return
@@ -96,23 +109,31 @@ func (deps Dependencies) String() (s string) {
 
 // Dependency represents what the identifier is depending on.
 type Dependency struct {
-	name     string                 // name of identifier
-	imports  ImportSet              // imports the name is depending on
+	name     string
+	imports  ImportSet
 	internal map[string]*Dependency // Dependencies inside same package
 	external ExternalDependencySet  // Dependencies of external package
 
-	used      bool // lazily changed to true by Use method
-	forceUsed bool // not using for now
+	// TODO: refactor
+	methods map[string]*Dependency
+
+	used bool // lazily changed to true by Use method
+
+	// an option for type declaration. if true, all methods will be kept,
+	// otherwise only used methods directly from code will be kept.
+	keepMethods bool
 }
 
 // NewDependency returns new Dependency.
 func NewDependency(name string) *Dependency {
 	return &Dependency{
-		name:     name,
-		imports:  make(ImportSet),
-		internal: make(map[string]*Dependency),
-		external: make(ExternalDependencySet),
-		used:     false,
+		name:        name,
+		imports:     make(ImportSet),
+		internal:    make(map[string]*Dependency),
+		external:    make(ExternalDependencySet),
+		methods:     make(map[string]*Dependency),
+		used:        false,
+		keepMethods: false,
 	}
 }
 
@@ -131,6 +152,16 @@ func (d *Dependency) SetExternal(path, target string) {
 // SetImport sets import dependency.
 func (d *Dependency) SetImport(i *Import) { d.imports.Add(i) }
 
+// SetMethod sets the Dependency to methods map.
+func (d *Dependency) SetMethod(dep *Dependency) {
+	if _, ok := d.methods[dep.name]; !ok {
+		d.methods[dep.name] = dep
+	}
+}
+
+// TurnOnKeepMethodOption sets keepMethods option to true
+func (d *Dependency) TurnOnKeepMethodOption() { d.keepMethods = true }
+
 func (d *Dependency) String() string { return d.name }
 
 // Use changes it's use state to true and
@@ -148,11 +179,16 @@ func (d *Dependency) Use() (v []ExternalDependencySet) {
 	for _, dep := range d.internal {
 		v = append(v, dep.Use()...)
 	}
+	if d.keepMethods {
+		for _, method := range d.methods {
+			v = append(v, method.Use()...)
+		}
+	}
 	return append(v, d.external)
 }
 
 // IsUsed returns used state.
-func (d *Dependency) IsUsed() bool { return d.forceUsed || d.used }
+func (d *Dependency) IsUsed() bool { return d.used }
 
 type (
 	// ExternalDependency represents external package's dependency information.

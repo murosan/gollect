@@ -8,6 +8,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"strings"
 
 	"golang.org/x/tools/go/ast/astutil"
 )
@@ -45,6 +46,9 @@ func filterGenDecl(deps Dependencies, node *ast.GenDecl) {
 		// remove all imports to add unique ones later
 		node.Specs = nil
 	}
+
+	// remove gollect annotation comments
+	filterAnnotation(node)
 }
 
 func filterSpecs(deps Dependencies, specs []ast.Spec) (res []ast.Spec) {
@@ -81,18 +85,30 @@ func filterValueSpec(deps Dependencies, spec *ast.ValueSpec) {
 }
 
 func isUsedFuncDecl(deps Dependencies, decl *ast.FuncDecl) bool {
-	id := decl.Name
+	id := decl.Name.Name
 
 	if decl.Recv != nil {
 		switch expr := decl.Recv.List[0].Type.(type) {
 		case *ast.Ident:
-			id = expr
+			id = expr.Name + "." + id
 		case *ast.StarExpr:
-			id = expr.X.(*ast.Ident)
+			id = expr.X.(*ast.Ident).Name + "." + id
 		}
 	}
 
-	return id != nil && deps.IsUsed(id.Name)
+	return id != "" && deps.IsUsed(id)
+}
+
+func filterAnnotation(node *ast.GenDecl) {
+	if node.Doc != nil {
+		var docs []*ast.Comment
+		for _, doc := range node.Doc.List {
+			if !strings.Contains(doc.Text, annotationPrefix) {
+				docs = append(docs, doc)
+			}
+		}
+		node.Doc.List = docs
+	}
 }
 
 // RemoveExternalIdents removes external package's selectors.
