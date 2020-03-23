@@ -158,7 +158,7 @@ func TestImportSet_ToDecl(t *testing.T) {
 	}
 	actual := set.ToDecl()
 
-	if !eqImportGenDecl(want, actual) {
+	if !eqImportGenDecl(t, want, actual) {
 		t.Errorf("\nwant:   %v\nactual: %v", want, actual)
 	}
 }
@@ -176,12 +176,13 @@ func TestImportSet_ToDecl2(t *testing.T) {
 	}
 	actual := set.ToDecl()
 
-	if !eqImportGenDecl(want, actual) {
+	if !eqImportGenDecl(t, want, actual) {
 		t.Errorf("\nwant:   %v\nactual: %v", want, actual)
 	}
 }
 
-func eqImportGenDecl(a, b *ast.GenDecl) bool {
+func eqImportGenDecl(t *testing.T, a, b *ast.GenDecl) bool {
+	t.Helper()
 	if !reflect.DeepEqual(a.Doc, b.Doc) ||
 		a.TokPos != b.TokPos ||
 		a.Tok != b.Tok ||
@@ -192,15 +193,29 @@ func eqImportGenDecl(a, b *ast.GenDecl) bool {
 		return false
 	}
 
+	type tup struct{ name, path string }
+	aset := make(map[tup]interface{})
+	bset := make(map[tup]interface{})
+
 	for i := range a.Specs {
-		a, ok1 := a.Specs[i].(*ast.ImportSpec)
-		b, ok2 := b.Specs[i].(*ast.ImportSpec)
+		aa, ok1 := a.Specs[i].(*ast.ImportSpec)
+		bb, ok2 := b.Specs[i].(*ast.ImportSpec)
 
 		// must be *ast.ImportSpec
-		return ok1 && ok2 &&
-			((a.Name == nil && b.Name == nil) || (a.Name.Name == b.Name.Name)) &&
-			(a.Path.Value == b.Path.Value)
+		if !ok1 || !ok2 {
+			return false
+		}
+
+		var aname, bname string
+		if aa.Name != nil {
+			aname = aa.Name.Name
+		}
+		if bb.Name != nil {
+			bname = bb.Name.Name
+		}
+		aset[tup{name: aname, path: aa.Path.Value}] = struct{}{}
+		bset[tup{name: bname, path: bb.Path.Value}] = struct{}{}
 	}
 
-	return true
+	return reflect.DeepEqual(aset, bset)
 }

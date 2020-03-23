@@ -43,14 +43,12 @@ func (i *Import) AliasOrName() string {
 
 // ToSpec creates and returns ast.ImportSpec.
 func (i *Import) ToSpec() *ast.ImportSpec {
-	var name *ast.Ident
+	var s ast.ImportSpec
 	if i.alias != "" {
-		name = ast.NewIdent(i.alias)
+		s.Name = ast.NewIdent(i.alias)
 	}
-	return &ast.ImportSpec{
-		Name: name,
-		Path: &ast.BasicLit{Value: strconv.Quote(i.path)},
-	}
+	s.Path = &ast.BasicLit{Value: strconv.Quote(i.path)}
+	return &s
 }
 
 // Use changes used state to true.
