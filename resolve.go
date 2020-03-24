@@ -11,15 +11,23 @@ import (
 	"go/token"
 	"go/types"
 	"strings"
+	"sync"
 )
 
 // AnalyzeForeach executes analyzing dependency for each packages.
 func AnalyzeForeach(program *Program) {
+	fset := program.FileSet()
+	wg := &sync.WaitGroup{}
 	for _, pkg := range program.Packages() {
-		ExecCheck(program.FileSet(), pkg)
-		pkg.InitObjects()
-		ResolveDependency(pkg)
+		wg.Add(1)
+		go func(fset *token.FileSet, pkg *Package) {
+			ExecCheck(fset, pkg)
+			pkg.InitObjects()
+			ResolveDependency(pkg)
+			wg.Done()
+		}(fset, pkg)
 	}
+	wg.Wait()
 }
 
 // ExecCheck executes types.Config.Check
