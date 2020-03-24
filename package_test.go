@@ -40,7 +40,7 @@ func TestPackage_InitObjects(t *testing.T) {
 
 func TestPackages(t *testing.T) {
 	packages := make(Packages)
-	imports := make(ImportSet)
+	imports := NewImportSet()
 	p := NewPackage("github.com/murosan/abc", imports)
 
 	packages.Set(p.path, p)

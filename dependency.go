@@ -86,9 +86,7 @@ func (deps Dependencies) String() (s string) {
 		for ed := range dep.external {
 			external += "\n|     " + ed.String()
 		}
-		for _, i := range dep.imports {
-			imports += "\n|     " + i.String()
-		}
+		dep.imports.Foreach(func(i *Import) { imports += "\n|     " + i.String() })
 		for _, m := range dep.methods {
 			methods += "\n|     " + m.String()
 		}
@@ -110,7 +108,7 @@ func (deps Dependencies) String() (s string) {
 // Dependency represents what the identifier is depending on.
 type Dependency struct {
 	name     string
-	imports  ImportSet
+	imports  *ImportSet
 	internal map[string]*Dependency // Dependencies inside same package
 	external ExternalDependencySet  // Dependencies of external package
 
@@ -128,7 +126,7 @@ type Dependency struct {
 func NewDependency(name string) *Dependency {
 	return &Dependency{
 		name:        name,
-		imports:     make(ImportSet),
+		imports:     NewImportSet(),
 		internal:    make(map[string]*Dependency),
 		external:    make(ExternalDependencySet),
 		methods:     make(map[string]*Dependency),
@@ -173,9 +171,7 @@ func (d *Dependency) Use() (v []ExternalDependencySet) {
 	}
 	d.used = true
 
-	for _, i := range d.imports {
-		i.Use()
-	}
+	d.imports.Foreach(func(i *Import) { i.Use() })
 	for _, dep := range d.internal {
 		v = append(v, dep.Use()...)
 	}

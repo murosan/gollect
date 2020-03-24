@@ -9,6 +9,7 @@ import (
 	"go/ast"
 	"go/token"
 	"strconv"
+	"sync"
 )
 
 type (
@@ -19,7 +20,10 @@ type (
 	}
 
 	// ImportSet is a set of Import.
-	ImportSet map[string]*Import
+	ImportSet struct {
+		sync.RWMutex
+		m map[string]*Import
+	}
 )
 
 // NewImport returns new Import.
@@ -68,18 +72,45 @@ func (i *Import) String() string {
 	)
 }
 
+// NewImportSet returns new ImportSet.
+func NewImportSet() *ImportSet {
+	return &ImportSet{m: make(map[string]*Import)}
+}
+
+// Len returns length of map.
+func (s *ImportSet) Len() int {
+	s.RLock()
+	defer s.RUnlock()
+	return len(s.m)
+}
+
+// Foreach apply block to each element.
+func (s *ImportSet) Foreach(block func(*Import)) {
+	s.RLock()
+	defer s.RUnlock()
+	for _, v := range s.m {
+		block(v)
+	}
+}
+
 // Add adds the Import to set.
-func (s ImportSet) Add(i *Import) { s[i.AliasOrName()] = i }
+func (s *ImportSet) Add(i *Import) {
+	s.Lock()
+	s.m[i.AliasOrName()] = i
+	s.Unlock()
+}
 
 // Get gets an Import from set.
-func (s ImportSet) Get(key string) (*Import, bool) {
-	v, ok := s[key]
+func (s *ImportSet) Get(key string) (*Import, bool) {
+	s.RLock()
+	v, ok := s.m[key]
+	s.RUnlock()
 	return v, ok
 }
 
 // GetOrCreate gets an Import form set, if the set has no matched value
 // creates new one.
-func (s ImportSet) GetOrCreate(alias, name, path string) *Import {
+func (s *ImportSet) GetOrCreate(alias, name, path string) *Import {
 	i := NewImport(alias, name, path)
 	if v, ok := s.Get(i.AliasOrName()); ok {
 		return v
@@ -89,10 +120,13 @@ func (s ImportSet) GetOrCreate(alias, name, path string) *Import {
 }
 
 // ToDecl creates ast.GenDecl and returns it.
-func (s ImportSet) ToDecl() *ast.GenDecl {
+func (s *ImportSet) ToDecl() *ast.GenDecl {
 	d := &ast.GenDecl{Tok: token.IMPORT}
 
-	for _, i := range s {
+	s.RLock()
+	defer s.RUnlock()
+
+	for _, i := range s.m {
 		if i.IsUsed() && i.IsBuiltin() {
 			d.Specs = append(d.Specs, i.ToSpec())
 		}

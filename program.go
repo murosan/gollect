@@ -11,7 +11,7 @@ import (
 // Program is a container of information that is neccessary across packages.
 type Program struct {
 	fset     *token.FileSet
-	iset     ImportSet
+	iset     *ImportSet
 	packages Packages
 }
 
@@ -19,7 +19,7 @@ type Program struct {
 func NewProgram() *Program {
 	return &Program{
 		fset:     token.NewFileSet(),
-		iset:     make(ImportSet),
+		iset:     NewImportSet(),
 		packages: make(Packages),
 	}
 }
@@ -28,7 +28,7 @@ func NewProgram() *Program {
 func (p *Program) FileSet() *token.FileSet { return p.fset }
 
 // ImportSet returns import set.
-func (p *Program) ImportSet() ImportSet { return p.iset }
+func (p *Program) ImportSet() *ImportSet { return p.iset }
 
 // Packages returns packages.
 func (p *Program) Packages() Packages { return p.packages }

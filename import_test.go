@@ -102,7 +102,7 @@ func TestImport_IsBuiltin(t *testing.T) {
 }
 
 func TestImportSet(t *testing.T) {
-	set := make(ImportSet)
+	set := NewImportSet()
 
 	name := "fmt"
 	i1 := NewImport("", name, "fmt")
@@ -132,7 +132,7 @@ func TestImportSet(t *testing.T) {
 }
 
 func TestImportSet_ToDecl(t *testing.T) {
-	set := make(ImportSet)
+	set := NewImportSet()
 	i1 := NewImport("", "fmt", "fmt")
 	i2 := NewImport("f", "fmt", "fmt")
 	i3 := NewImport("unused", "fmt", "fmt")
@@ -164,7 +164,7 @@ func TestImportSet_ToDecl(t *testing.T) {
 }
 
 func TestImportSet_ToDecl2(t *testing.T) {
-	set := make(ImportSet)
+	set := NewImportSet()
 	i1 := NewImport("", "fmt", "fmt")
 	i1.Use()
 	set.Add(i1)

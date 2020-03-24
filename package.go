@@ -14,7 +14,7 @@ type (
 	Package struct {
 		path    string                 // package path
 		files   []*ast.File            // container of ast files
-		imports ImportSet              // shared in global
+		imports *ImportSet             // shared in global
 		objects map[string]*ast.Object // map of package-level objects
 		info    *types.Info            // uses info
 		deps    Dependencies           // pairs of ident name and Dependency
@@ -25,7 +25,7 @@ type (
 )
 
 // NewPackage returns new Package.
-func NewPackage(path string, imports ImportSet) *Package {
+func NewPackage(path string, imports *ImportSet) *Package {
 	return &Package{
 		path:    path,
 		files:   nil,

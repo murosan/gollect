@@ -288,7 +288,7 @@ func TestExternalDependencySet(t *testing.T) {
 
 func TestUseAll(t *testing.T) {
 	packages := make(Packages)
-	is := make(ImportSet)
+	is := NewImportSet()
 
 	p1 := NewPackage("main", is)
 	p2 := NewPackage("pkg2", is)
