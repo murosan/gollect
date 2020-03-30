@@ -145,7 +145,7 @@ func setDependency(pkg *Package, id string, node ast.Node) {
 								// 	}
 								// the key might be 'Scanner.Bytes', 'Scanner.Scan'.
 								// todo: originally, it should not be added to dependency
-								//       because they are Golang's builtin method.
+								//       because they are Golang's builtin methods.
 								key := named.Obj().Name() + "." + node.Sel.Name
 								pkg.Dependencies().SetExternal(id, path, key)
 							}
