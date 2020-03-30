@@ -107,3 +107,58 @@ To run with YAML configuration file, execute like:
 ```sh
 gollect -config ./config.yml
 ```
+
+## How it works?
+
+Does the followings roughly:
+
+1. list all package-level declarations.
+2. find out declarations on which each declaration depends.
+3. output all declarations together on which main function in main package depends.
+
+Here's the list of package-level declarations:
+
+- var
+- const
+- type definition
+- function
+- method
+
+Methods are also considered package-level declarations.  
+And, it doesn't matter if it is exported (begin with a upper case character) or not.  
+For example, following is all package-level declarations:
+
+```go
+var a = 100
+var A = 200
+const b = 300
+const B = 400
+type c struct{}
+func (c c) do() {}
+func (c *c) Do() {}
+type C struct{}
+func (C) do() {}
+func (*C) Do() {}
+type d interface{}
+type D interface{}
+func e() {}
+func E() {}
+```
+
+Finally, the declaration which is not used from main function will be ignored.  
+Also methods are not exception.
+
+But you may want to keep the method. For example, heap.  
+See the example for `IntHeap` on the foillowing page.
+
+https://golang.org/pkg/container/heap/
+
+`Len` and `Less` may not be used directly (or indirectly) from the main function, but will not work without them.  
+To keep them, add `// gollect: keep methods` into comments.
+This leaves all `IntHeap` methods.
+
+```go
+// An IntHeap is a min-heap of ints.
+// gollect: keep methods
+type IntHeap []int
+```

@@ -103,3 +103,59 @@ YAML の設定ファイルを指定して実行するには以下のようにし
 ```sh
 gollect -config ./config.yml
 ```
+
+## 何を行っているか
+
+おおまかに以下のことを行います
+
+1. パッケージレベルの宣言をリストアップする
+2. それぞれの宣言が依存している宣言を調べる
+3. main パッケージの main 関数が依存している宣言をすべて一つのファイルにまとめて出力する
+
+パッケージレベルの宣言の一覧は以下です。
+
+- var
+- const
+- type 定義
+- 関数
+- メソッド
+
+メソッドもパッケージレベルの宣言とみなします。  
+また、Exported(大文字で始まる)かどうかは関係ありません。  
+例えば以下はすべてパッケージレベルの宣言です。
+
+```go
+var a = 100
+var A = 200
+const b = 300
+const B = 400
+type c struct{}
+func (c c) do() {}
+func (c *c) Do() {}
+type C struct{}
+func (C) do() {}
+func (*C) Do() {}
+type d interface{}
+type D interface{}
+func e() {}
+func E() {}
+```
+
+最終的に main 関数から使用されていない宣言は無視されます。  
+メソッドも例外ではありません。
+
+しかし、メソッドは残したい場合があると思います。
+例えば heap です。  
+以下のページの `IntHeap` の例を見てください。
+
+https://golang.org/pkg/container/heap/
+
+`Len` や `Less` は main 関数から直接(または間接的に)使用されることはないかもしれませんが、残さなければ機能しません。  
+これらを残すには、コメントに `// gollect: keep methods` を追記してください。  
+これで `IntHeap` のメソッドはすべて残されます。
+
+```go
+// An IntHeap is a min-heap of ints.
+// gollect: keep methods
+type IntHeap []int
+```
