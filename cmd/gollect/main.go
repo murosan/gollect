@@ -12,7 +12,7 @@ import (
 
 var (
 	cnf   = flag.String("config", "", "configuration filepath. if specified, all other cli option will be ignored")
-	input = flag.String("main", "main.go", "filepath of main.go or glob for main package files")
+	input = flag.String("in", "main.go", "filepath of main.go or glob for main package files")
 	out   = flag.String("out", "stdout", "output filepath. filepath, 'stdout' and 'clipboard' are available")
 
 	config *gollect.Config

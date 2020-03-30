@@ -56,7 +56,7 @@ func main() {
 Execute `gollect`.
 
 ```sh
-$ gollect -main ./main.go
+$ gollect -in ./main.go
 ```
 
 The code you can submit will be outputted as follow:

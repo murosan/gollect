@@ -52,7 +52,7 @@ func main() {
 gollect を実行します。
 
 ```sh
-$ gollect -main ./main.go
+$ gollect -in ./main.go
 ```
 
 以下のように、そのまま提出できるコードが出力されます。
