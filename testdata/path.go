@@ -17,10 +17,14 @@ var (
 		}
 		return cwd
 	}()
-	base = filepath.Join(cwd, "testdata", "codes")
+
+	j    = filepath.Join
+	base = j(cwd, "testdata", "codes")
 
 	// FilePaths a set of paths used in test.
 	FilePaths = struct {
+		Parse,
+
 		A,
 		B,
 		Pkg1,
@@ -28,20 +32,29 @@ var (
 		Write1,
 		Write2 string
 	}{
-		A:      filepath.Join(base, "a", "main.go"),
-		B:      filepath.Join(base, "b", "*.go"),
-		Pkg1:   filepath.Join(base, "pkg1", "*.go"),
-		Pkg2:   filepath.Join(base, "pkg2", "*.go"),
-		Write1: filepath.Join(base, "writeone", "*.go"),
-		Write2: filepath.Join(base, "writetwo", "*.go"),
+		Parse: j(base, "parse", "main.go"),
+
+		A:      j(base, "a", "main.go"),
+		B:      j(base, "b", "*.go"),
+		Pkg1:   j(base, "pkg1", "*.go"),
+		Pkg2:   j(base, "pkg2", "*.go"),
+		Write1: j(base, "writeone", "*.go"),
+		Write2: j(base, "writetwo", "*.go"),
 	}
 
 	pkgBase = "github.com/murosan/gollect/testdata/codes"
 
 	// PackagePaths a set of package paths used in test.
 	PackagePaths = struct {
-		Pkg1, Pkg2 string
+		Parse1,
+		Parse2,
+
+		Pkg1,
+		Pkg2 string
 	}{
+		Parse1: pkgBase + "/parse/apkg",
+		Parse2: pkgBase + "/parse/bpkg",
+
 		Pkg1: pkgBase + "/pkg1",
 		Pkg2: pkgBase + "/pkg2",
 	}

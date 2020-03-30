@@ -13,7 +13,7 @@ import (
 
 func TestParseAll(t *testing.T) {
 	program := NewProgram()
-	paths, _ := filepath.Glob(testdata.FilePaths.A)
+	paths, _ := filepath.Glob(testdata.FilePaths.Parse)
 
 	if program.Packages() == nil ||
 		program.ImportSet() == nil ||
@@ -35,8 +35,8 @@ func TestParseAll(t *testing.T) {
 		files int
 	}{
 		{path: "main", files: 1},
-		{path: testdata.PackagePaths.Pkg1, files: 2},
-		{path: testdata.PackagePaths.Pkg2, files: 1},
+		{path: testdata.PackagePaths.Parse1, files: 2},
+		{path: testdata.PackagePaths.Parse2, files: 1},
 	} {
 		v, ok := packages[c.path]
 		if !ok {
