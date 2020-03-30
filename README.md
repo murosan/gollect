@@ -153,9 +153,9 @@ See the example for `IntHeap` on the foillowing page.
 
 https://golang.org/pkg/container/heap/
 
-`Len` and `Less` may not be used directly (or indirectly) from the main function, but will not work without them.  
+`Len`, `Less` and the other methods may not be used directly (or indirectly) from the main function, but final code will not work without them.  
 To keep them, add `// gollect: keep methods` into comments.
-This leaves all `IntHeap` methods.
+This leaves all `IntHeap`'s methods.
 
 ```go
 // An IntHeap is a min-heap of ints.
