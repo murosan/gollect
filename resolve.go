@@ -138,6 +138,14 @@ func setDependency(pkg *Package, id string, node ast.Node) {
 							// set if node.Sel is a method (not a struct field value).
 							switch pkg.info.Uses[node.Sel].Type().(type) {
 							case *types.Signature:
+								// if there is a declaration like follow:
+								// 	type Scanner { *bufio.Scanner }
+								// 	func (sc *Scanner) ScanBytes() []byte {
+								// 		sc.Scan(); return sc.Bytes()
+								// 	}
+								// the key might be 'Scanner.Bytes', 'Scanner.Scan'.
+								// todo: originally, it should not be added to dependency
+								//       because they are Golang's builtin method.
 								key := named.Obj().Name() + "." + node.Sel.Name
 								pkg.Dependencies().SetExternal(id, path, key)
 							}
@@ -155,7 +163,7 @@ func setDependency(pkg *Package, id string, node ast.Node) {
 			}
 
 			uses, ok := pkg.info.Uses[node]
-			if !ok || uses.Pkg() == nil {
+			if !ok || uses.Pkg() == nil || isBuiltinPackage(uses.Pkg().Path()) {
 				break
 			}
 

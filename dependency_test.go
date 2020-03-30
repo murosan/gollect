@@ -104,10 +104,10 @@ func TestDependencies_Use(t *testing.T) {
 	key := "key"
 	d := NewDependency(key)
 
-	shouldPanic(
+	shouldNotPanic(
 		t,
 		func() { deps.Use(key) },
-		"expected panic, but there wasn't",
+		"expected no panic, but recovered",
 	)
 
 	deps.Set(d)

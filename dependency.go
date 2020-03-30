@@ -63,11 +63,12 @@ func (deps Dependencies) TurnOnKeepMethodOption(caller string) {
 // Panics if deps has no key. Therefore, make sure
 // to set all dependencies before.
 func (deps Dependencies) Use(key string) []ExternalDependencySet {
-	if d, ok := deps[key]; !ok {
-		panic("no such identity. name = " + key)
-	} else {
+	if d, ok := deps[key]; ok {
 		return d.Use()
 	}
+	// should panic.
+	// todo: ignoring embedded methods in resolve.go
+	return nil
 }
 
 // IsUsed gets Dependency from map and returns whether it is used or not.
