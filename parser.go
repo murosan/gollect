@@ -9,6 +9,7 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"sync"
 
 	"golang.org/x/tools/go/packages"
 )
@@ -48,14 +49,19 @@ func ParseAll(
 
 // ParseAst parses ast and pushes to files slice.
 func ParseAst(fset *token.FileSet, p *Package, paths ...string) {
+	var wg sync.WaitGroup
 	for _, path := range paths {
-		f, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
-		if err != nil {
-			panic(fmt.Errorf("parse file (path = %s): %w", path, err))
-		}
-
-		p.files = append(p.files, f)
+		wg.Add(1)
+		go func(path string) {
+			f, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
+			if err != nil {
+				panic(fmt.Errorf("parse file (path = %s): %w", path, err))
+			}
+			p.PushAstFile(f)
+			wg.Done()
+		}(path)
 	}
+	wg.Wait()
 }
 
 // FindFilePaths finds filepaths from package path.

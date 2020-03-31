@@ -7,11 +7,14 @@ package gollect
 import (
 	"go/ast"
 	"go/types"
+	"sync"
 )
 
 type (
 	// Package represents analyzing information.
 	Package struct {
+		sync.Mutex
+
 		path    string                 // package path
 		files   []*ast.File            // container of ast files
 		imports *ImportSet             // shared in global
@@ -51,6 +54,13 @@ func (pkg *Package) InitObjects() {
 
 // Dependencies returns dependencies.
 func (pkg *Package) Dependencies() Dependencies { return pkg.deps }
+
+// PushAstFile push ast.File to files.
+func (pkg *Package) PushAstFile(f *ast.File) {
+	pkg.Lock()
+	pkg.files = append(pkg.files, f)
+	pkg.Unlock()
+}
 
 // Set sets the Package to set.
 func (p Packages) Set(path string, pkg *Package) { p[path] = pkg }
