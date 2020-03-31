@@ -16,16 +16,15 @@ import (
 
 // AnalyzeForeach executes analyzing dependency for each packages.
 func AnalyzeForeach(program *Program) {
-	fset := program.FileSet()
-	wg := &sync.WaitGroup{}
+	var wg sync.WaitGroup
 	for _, pkg := range program.Packages() {
 		wg.Add(1)
-		go func(fset *token.FileSet, pkg *Package) {
-			ExecCheck(fset, pkg)
+		go func(pkg *Package) {
+			ExecCheck(program.FileSet(), pkg)
 			pkg.InitObjects()
 			ResolveDependency(pkg)
 			wg.Done()
-		}(fset, pkg)
+		}(pkg)
 	}
 	wg.Wait()
 }
