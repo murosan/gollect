@@ -107,6 +107,10 @@ func resolve(pkg *Package, decl ast.Decl) {
 }
 
 func setDependency(pkg *Package, id string, node ast.Node) {
+	if node == nil {
+		return
+	}
+
 	ast.Inspect(node, func(node ast.Node) bool {
 		switch node := node.(type) {
 		case *ast.SelectorExpr:
