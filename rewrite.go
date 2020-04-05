@@ -76,7 +76,9 @@ func filterValueSpec(deps Dependencies, spec *ast.ValueSpec) {
 	for i, id := range spec.Names {
 		if deps.IsUsed(id.Name) {
 			names = append(names, id)
-			values = append(values, spec.Values[i])
+			if len(spec.Values) > i {
+				values = append(values, spec.Values[i])
+			}
 		}
 	}
 
