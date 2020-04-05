@@ -61,11 +61,10 @@ func resolve(pkg *Package, decl ast.Decl) {
 						name := id.Name
 						if pkg.objects[name].Decl == spec {
 							pkg.Dependencies().GetOrCreate(name)
-							var node ast.Node
+							setDependency(pkg, name, spec.Type)
 							if len(spec.Values) > i {
-								node = spec.Values[i]
+								setDependency(pkg, name, spec.Values[i])
 							}
-							setDependency(pkg, name, node)
 						}
 					}
 				case *ast.TypeSpec:
