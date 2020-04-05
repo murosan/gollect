@@ -157,6 +157,12 @@ func setDependency(pkg *Package, id string, node ast.Node) {
 							}
 						}
 					}
+
+				case *types.TypeName:
+					if path := uses.Pkg().Path(); !isBuiltinPackage(path) {
+						key := uses.Name() + "." + node.Sel.Name
+						pkg.Dependencies().SetExternal(id, path, key)
+					}
 				}
 			}
 
