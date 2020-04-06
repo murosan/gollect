@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Check format
-        run: test -z "$(gofmt -s -l .| grep -Ev 'testdata/codes|out/')"
+        run: test -z "$(gofmt -s -l .| grep -Ev 'testdata/(codes|cases)|out/')"
 
       - name: Test
         run: make ci
