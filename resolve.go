@@ -114,6 +114,16 @@ func setDependency(pkg *Package, id string, node ast.Node) {
 	ast.Inspect(node, func(node ast.Node) bool {
 		switch node := node.(type) {
 		case *ast.SelectorExpr:
+			if sel, ok := pkg.info.Selections[node]; ok {
+				if n := named(sel.Recv()); n != nil {
+					path := n.Obj().Pkg().Path()
+					if !isBuiltinPackage(path) {
+						pkg.Dependencies().SetExternal(id, path, n.Obj().Name()+"."+node.Sel.Name)
+					}
+				}
+				return true
+			}
+
 			if i, ok := node.X.(*ast.Ident); ok && i != nil {
 				switch uses := pkg.info.Uses[i].(type) {
 				case *types.PkgName:
@@ -128,40 +138,6 @@ func setDependency(pkg *Package, id string, node ast.Node) {
 
 					if !isBuiltinPackage(path) {
 						pkg.Dependencies().SetExternal(id, path, node.Sel.Name)
-					}
-
-				case *types.Var:
-					var named *types.Named
-					switch nmd := uses.Type().(type) {
-					case *types.Pointer:
-						named = nmd.Elem().(*types.Named)
-					case *types.Named:
-						named = nmd
-					}
-
-					if named != nil {
-						if path := named.Obj().Pkg().Path(); !isBuiltinPackage(path) {
-							// set if node.Sel is a method (not a struct field value).
-							switch pkg.info.Uses[node.Sel].Type().(type) {
-							case *types.Signature:
-								// if there is a declaration like follow:
-								// 	type Scanner { *bufio.Scanner }
-								// 	func (sc *Scanner) ScanBytes() []byte {
-								// 		sc.Scan(); return sc.Bytes()
-								// 	}
-								// the key might be 'Scanner.Bytes', 'Scanner.Scan'.
-								// todo: originally, it should not be added to dependency
-								//       because they are Golang's builtin methods.
-								key := named.Obj().Name() + "." + node.Sel.Name
-								pkg.Dependencies().SetExternal(id, path, key)
-							}
-						}
-					}
-
-				case *types.TypeName:
-					if path := uses.Pkg().Path(); !isBuiltinPackage(path) {
-						key := uses.Name() + "." + node.Sel.Name
-						pkg.Dependencies().SetExternal(id, path, key)
 					}
 				}
 			}
@@ -187,4 +163,15 @@ func setDependency(pkg *Package, id string, node ast.Node) {
 
 		return true
 	})
+}
+
+func named(expr types.Type) *types.Named {
+	switch expr := expr.(type) {
+	case *types.Named:
+		return expr
+	case *types.Pointer:
+		return named(expr.Elem())
+	default:
+		return nil
+	}
 }

@@ -24,6 +24,7 @@ func TestResolveDependency(t *testing.T) {
 		caller := "main"
 		want.SetInternal(caller, "num")
 		want.SetExternal(caller, testdata.PackagePaths.Pkg1, "TypeA")
+		want.SetExternal(caller, testdata.PackagePaths.Pkg1, "TypeA.Do3")
 		want.SetExternal(caller, testdata.PackagePaths.Pkg1, "NumA")
 		want.SetExternal(caller, testdata.PackagePaths.Pkg1, "NumC")
 		want.SetExternal(caller, testdata.PackagePaths.Pkg1, "PrintMax")

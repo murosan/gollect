@@ -35,7 +35,10 @@ func NewPackage(path string, imports *ImportSet) *Package {
 		imports: imports,
 		objects: make(map[string]*ast.Object),
 		info: &types.Info{
-			Uses: make(map[*ast.Ident]types.Object),
+			Uses:       make(map[*ast.Ident]types.Object),
+			// Types:      make(map[ast.Expr]types.TypeAndValue),
+			// Defs:       make(map[*ast.Ident]types.Object),
+			Selections: make(map[*ast.SelectorExpr]*types.Selection),
 		},
 		deps: make(Dependencies),
 	}
