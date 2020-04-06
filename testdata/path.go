@@ -5,21 +5,12 @@
 package testdata
 
 import (
-	"os"
 	"path/filepath"
 )
 
 var (
-	cwd = func() string {
-		cwd, err := os.Getwd()
-		if err != nil {
-			panic(err)
-		}
-		return cwd
-	}()
-
-	j    = filepath.Join
-	base = j(cwd, "testdata", "codes")
+	j     = filepath.Join
+	codes = j(cwd, "testdata", "codes")
 
 	// FilePaths a set of paths used in test.
 	FilePaths = struct {
@@ -32,14 +23,14 @@ var (
 		Write1,
 		Write2 string
 	}{
-		Parse: j(base, "parse", "main.go"),
+		Parse: j(codes, "parse", "main.go"),
 
-		A:      j(base, "a", "main.go"),
-		B:      j(base, "b", "*.go"),
-		Pkg1:   j(base, "pkg1", "*.go"),
-		Pkg2:   j(base, "pkg2", "*.go"),
-		Write1: j(base, "writeone", "*.go"),
-		Write2: j(base, "writetwo", "*.go"),
+		A:      j(codes, "a", "main.go"),
+		B:      j(codes, "b", "*.go"),
+		Pkg1:   j(codes, "pkg1", "*.go"),
+		Pkg2:   j(codes, "pkg2", "*.go"),
+		Write1: j(codes, "writeone", "*.go"),
+		Write2: j(codes, "writetwo", "*.go"),
 	}
 
 	pkgBase = "github.com/murosan/gollect/testdata/codes"

@@ -1,2 +1,5 @@
-.idea
 out
+testdata/cases/**/actual
+
+.idea
+.DS_Store
