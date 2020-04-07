@@ -59,7 +59,7 @@ func resolve(pkg *Package, decl ast.Decl) {
 				case *ast.ValueSpec:
 					for i, id := range spec.Names {
 						name := id.Name
-						if pkg.objects[name].Decl == spec {
+						if obj, ok := pkg.objects[name]; ok && obj.Decl == spec {
 							pkg.Dependencies().GetOrCreate(name)
 							setDependency(pkg, name, spec.Type)
 							if len(spec.Values) > i {

@@ -4,7 +4,7 @@
 
 package gollect
 
-// Annotation is an annotation inside doc text.
+// Annotation is an annotation for doc text.
 type Annotation string
 
 func (a Annotation) String() string { return string(a) }
