@@ -31,10 +31,20 @@ func AnalyzeForeach(program *Program) {
 	}
 	wg.Wait()
 
-	for _, d := range dset.Values() {
+	dsetValues := dset.Values()
+	for _, d := range dsetValues {
 		wg.Add(1)
 		go func(d Decl) {
 			NewDependencyResolver(dset, iset, pset).Check(d)
+			wg.Done()
+		}(d)
+	}
+	wg.Wait()
+
+	for _, d := range dsetValues {
+		wg.Add(1)
+		go func(d Decl) {
+			NewDependencyResolver(dset, iset, pset).CheckEmbedded(d)
 			wg.Done()
 		}(d)
 	}
@@ -142,6 +152,9 @@ func (f *DeclFinder) GenDecl(decl *ast.GenDecl) {
 								id.Name,
 								m.Obj().Name(),
 							).(*MethodDecl)
+							if len(m.Index()) >= 2 {
+								mdecl.SetEmbedded(true)
+							}
 							mdecl.SetType(tdecl)
 							tdecl.SetMethod(mdecl)
 						}
@@ -276,6 +289,28 @@ func (r *DependencyResolver) Check(decl Decl) {
 
 		return true
 	})
+}
+
+// CheckEmbedded checks set a method inherit from to dependency set
+// when the decl is embedded method.
+func (r *DependencyResolver) CheckEmbedded(decl Decl) {
+	mdecl, ok := decl.(*MethodDecl)
+	if !ok || !mdecl.IsEmbedded() {
+		return
+	}
+
+	for _, d := range mdecl.Type().UsesDecls() {
+		tdecl, ok := d.(*TypeDecl)
+		if !ok {
+			continue
+		}
+
+		for _, d := range tdecl.Methods() {
+			if mdecl.Name() == d.Name() {
+				mdecl.Uses(d)
+			}
+		}
+	}
 }
 
 func named(expr types.Type) *types.Named {

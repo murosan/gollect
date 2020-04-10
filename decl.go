@@ -47,14 +47,14 @@ func makeID(p *Package, s ...string) string {
 }
 
 // NewDecl return new Decl
-func NewDecl(t DeclType, pkg *Package, id ...string) Decl {
+func NewDecl(t DeclType, pkg *Package, ids ...string) Decl {
 	switch t {
 	case DecCommon:
-		return NewCommonDecl(pkg, id...)
+		return NewCommonDecl(pkg, ids...)
 	case DecType:
-		return NewTypeDecl(pkg, id...)
+		return NewTypeDecl(pkg, ids...)
 	case DecMethod:
-		return NewMethodDecl(pkg, id...)
+		return NewMethodDecl(pkg, ids...)
 	default:
 		panic(fmt.Sprintf("unknown DeclType %s", t))
 	}
@@ -72,10 +72,11 @@ type CommonDecl struct {
 	}
 }
 
-// NewCommonDecl returns new CommonDecl
-func NewCommonDecl(pkg *Package, id ...string) *CommonDecl {
+// NewCommonDecl returns new CommonDecl.
+// The length of ids must be one, and the value must be its name.
+func NewCommonDecl(pkg *Package, ids ...string) *CommonDecl {
 	return &CommonDecl{
-		id:   makeID(pkg, id...),
+		id:   makeID(pkg, ids...),
 		node: nil,
 		pkg:  pkg,
 		used: false,
@@ -134,9 +135,10 @@ type TypeDecl struct {
 }
 
 // NewTypeDecl returns new TypeDecl.
-func NewTypeDecl(pkg *Package, id ...string) *TypeDecl {
+// The length of ids must be one, and the value must be the type name.
+func NewTypeDecl(pkg *Package, ids ...string) *TypeDecl {
 	return &TypeDecl{
-		CommonDecl: NewCommonDecl(pkg, id...),
+		CommonDecl: NewCommonDecl(pkg, ids...),
 		methods: struct {
 			mset map[string]*MethodDecl
 			keep bool
@@ -160,6 +162,22 @@ func (d *TypeDecl) Use() {
 	}
 }
 
+// UsesDecls returns list of decls that d uses.
+func (d *TypeDecl) UsesDecls() []Decl {
+	return d.uses.decls.Values()
+}
+
+// Methods returns methods as a slice.
+func (d *TypeDecl) Methods() []*MethodDecl {
+	v := make([]*MethodDecl, len(d.methods.mset))
+	i := 0
+	for _, m := range d.methods.mset {
+		v[i] = m
+		i++
+	}
+	return v
+}
+
 // SetMethod sets given method to methods set.
 func (d *TypeDecl) SetMethod(m *MethodDecl) { d.methods.mset[m.ID()] = m }
 
@@ -171,20 +189,24 @@ func (d *TypeDecl) KeepMethod() { d.methods.keep = true }
 // MethodDecl represents method declaration.
 type MethodDecl struct {
 	*CommonDecl
-	tpe         *TypeDecl
-	inheritFrom *MethodDecl
-	embedded    bool
+	name     string
+	tpe      *TypeDecl
+	embedded bool
 }
 
-// NewMethodDecl returns new MethodDecl.
-func NewMethodDecl(pkg *Package, id ...string) *MethodDecl {
+// NewMethodDecl returns new MethodDecl. Length of ids must be two,
+// the head value is its receiver's type name and second value is func name.
+func NewMethodDecl(pkg *Package, ids ...string) *MethodDecl {
 	return &MethodDecl{
-		CommonDecl:  NewCommonDecl(pkg, id...),
-		tpe:         nil,
-		embedded:    false,
-		inheritFrom: nil,
+		CommonDecl: NewCommonDecl(pkg, ids...),
+		name:       ids[1],
+		tpe:        nil,
+		embedded:   false,
 	}
 }
+
+// Name returns method name.
+func (d *MethodDecl) Name() string { return d.name }
 
 // Type returns TypeDecl this method belongs to. The field is initialized lazily.
 func (d *MethodDecl) Type() *TypeDecl { return d.tpe }
@@ -193,16 +215,10 @@ func (d *MethodDecl) Type() *TypeDecl { return d.tpe }
 func (d *MethodDecl) SetType(t *TypeDecl) { d.tpe = t }
 
 // IsEmbedded returns true if it is embedded method.
-// TODO: this is not used for now.
 func (d *MethodDecl) IsEmbedded() bool { return d.embedded }
 
 // SetEmbedded change its embedded field to true.
-// TODO: this is not used for now.
 func (d *MethodDecl) SetEmbedded(b bool) { d.embedded = b }
-
-// SetInheritFrom sets given method to inheritFrom field.
-// TODO: this is not used for now.
-func (d *MethodDecl) SetInheritFrom(m *MethodDecl) { d.inheritFrom = m }
 
 // Use change this, its dependencies' and its methods' used field to true.
 func (d *MethodDecl) Use() {
@@ -211,9 +227,6 @@ func (d *MethodDecl) Use() {
 	}
 	d.CommonDecl.Use()
 	d.Type().Use()
-	if d.IsEmbedded() {
-		d.inheritFrom.Use()
-	}
 }
 
 // DeclSet is a set of Decl
