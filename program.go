@@ -8,19 +8,21 @@ import (
 	"go/token"
 )
 
-// Program is a container of information that is neccessary across packages.
+// Program is a container of information that is necessary across packages.
 type Program struct {
-	fset     *token.FileSet
-	iset     *ImportSet
-	packages Packages
+	fset *token.FileSet
+	iset *ImportSet
+	dset *DeclSet
+	pset PackageSet
 }
 
 // NewProgram returns new Program.
 func NewProgram() *Program {
 	return &Program{
-		fset:     token.NewFileSet(),
-		iset:     NewImportSet(),
-		packages: make(Packages),
+		fset: token.NewFileSet(),
+		iset: NewImportSet(),
+		dset: NewDeclSet(),
+		pset: make(PackageSet),
 	}
 }
 
@@ -30,5 +32,8 @@ func (p *Program) FileSet() *token.FileSet { return p.fset }
 // ImportSet returns import set.
 func (p *Program) ImportSet() *ImportSet { return p.iset }
 
-// Packages returns packages.
-func (p *Program) Packages() Packages { return p.packages }
+// DeclSet returns declaration set.
+func (p *Program) DeclSet() *DeclSet { return p.dset }
+
+// PackageSet returns packages.
+func (p *Program) PackageSet() PackageSet { return p.pset }

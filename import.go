@@ -21,8 +21,8 @@ type (
 
 	// ImportSet is a set of Import.
 	ImportSet struct {
-		sync.RWMutex
-		m map[string]*Import
+		mux  sync.RWMutex
+		iset map[string]*Import
 	}
 )
 
@@ -74,37 +74,42 @@ func (i *Import) String() string {
 
 // NewImportSet returns new ImportSet.
 func NewImportSet() *ImportSet {
-	return &ImportSet{m: make(map[string]*Import)}
+	return &ImportSet{iset: make(map[string]*Import)}
 }
 
 // Len returns length of map.
 func (s *ImportSet) Len() int {
-	s.RLock()
-	defer s.RUnlock()
-	return len(s.m)
+	s.mux.RLock()
+	defer s.mux.RUnlock()
+	return len(s.iset)
 }
 
-// Foreach apply block to each element.
-func (s *ImportSet) Foreach(block func(*Import)) {
-	s.RLock()
-	defer s.RUnlock()
-	for _, v := range s.m {
-		block(v)
+// Values apply block to each element.
+func (s *ImportSet) Values() []*Import {
+	s.mux.RLock()
+	defer s.mux.RUnlock()
+	i := 0
+	a := make([]*Import, len(s.iset))
+	for _, v := range s.iset {
+		v := v
+		a[i] = v
+		i++
 	}
+	return a
 }
 
 // Add adds the Import to set.
 func (s *ImportSet) Add(i *Import) {
-	s.Lock()
-	s.m[i.AliasOrName()] = i
-	s.Unlock()
+	s.mux.Lock()
+	s.iset[i.AliasOrName()] = i
+	s.mux.Unlock()
 }
 
 // Get gets an Import from set.
 func (s *ImportSet) Get(key string) (*Import, bool) {
-	s.RLock()
-	v, ok := s.m[key]
-	s.RUnlock()
+	s.mux.RLock()
+	v, ok := s.iset[key]
+	s.mux.RUnlock()
 	return v, ok
 }
 
@@ -123,10 +128,10 @@ func (s *ImportSet) GetOrCreate(alias, name, path string) *Import {
 func (s *ImportSet) ToDecl() *ast.GenDecl {
 	d := &ast.GenDecl{Tok: token.IMPORT}
 
-	s.RLock()
-	defer s.RUnlock()
+	s.mux.RLock()
+	defer s.mux.RUnlock()
 
-	for _, i := range s.m {
+	for _, i := range s.iset {
 		if i.IsUsed() && i.IsBuiltin() {
 			d.Specs = append(d.Specs, i.ToSpec())
 		}

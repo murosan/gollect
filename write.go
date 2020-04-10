@@ -13,16 +13,19 @@ import (
 
 // Write writes filtered and formatted code to io.Writer.
 func Write(w io.Writer, program *Program) error {
-	fset, iset, packages := program.FileSet(), program.ImportSet(), program.Packages()
+	fset, dset := program.FileSet(), program.DeclSet()
+	iset, pset := program.ImportSet(), program.PackageSet()
 
 	// get head of main package's ast files
 	// treat this as base ast
-	mainPackage := packages["main"]
+	mainPackage := pset["main"]
 	main := mainPackage.files[0]
 
+	filter := NewFilter(dset, mainPackage)
+
 	// delete unused codes and all imports from base ast
-	main.Decls = FilterDecls(mainPackage.Dependencies(), main.Decls)
-	RemoveExternalIdents(main, mainPackage)
+	main.Decls = filter.Decls(main.Decls)
+	filter.PackageSelectorExpr(main)
 
 	// build new import decl and push it to head of decls
 	if ispec := iset.ToDecl(); len(ispec.Specs) != 0 {
@@ -33,24 +36,27 @@ func Write(w io.Writer, program *Program) error {
 		return fmt.Errorf("format: %w", err)
 	}
 
-	for path, pkg := range packages {
+	for path, pkg := range pset {
 		for _, file := range pkg.files {
-			if file != main {
-				decls := FilterDecls(packages[path].Dependencies(), file.Decls)
-				for _, d := range decls {
-					RemoveExternalIdents(d, pkg)
-				}
+			if file == main {
+				continue
+			}
 
-				if len(decls) != 0 {
-					if _, err := w.Write([]byte("\n")); err != nil {
-						return err
-					}
-					if err := format.Node(w, fset, decls); err != nil {
-						return fmt.Errorf("format: %w", err)
-					}
-					if _, err := w.Write([]byte("\n")); err != nil {
-						return err
-					}
+			filter := NewFilter(dset, pset[path])
+			decls := filter.Decls(file.Decls)
+			for _, d := range decls {
+				filter.PackageSelectorExpr(d)
+			}
+
+			if len(decls) != 0 {
+				if _, err := w.Write([]byte("\n")); err != nil {
+					return err
+				}
+				if err := format.Node(w, fset, decls); err != nil {
+					return fmt.Errorf("format: %w", err)
+				}
+				if _, err := w.Write([]byte("\n")); err != nil {
+					return err
 				}
 			}
 		}

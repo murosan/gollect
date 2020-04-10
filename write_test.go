@@ -70,9 +70,9 @@ func FuncB() {
 		ParseAll(program, "main", paths)
 		AnalyzeForeach(program)
 
-		next := []ExternalDependencySet{{}}
-		next[0].Add("main", "main")
-		UseAll(program.Packages(), next)
+		pkg := NewPackage("main")
+		d, _ := program.DeclSet().Get(pkg, "main")
+		d.Use()
 
 		err := Write(&buf, program)
 

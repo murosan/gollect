@@ -30,12 +30,12 @@ func ParseAll(
 
 	for paths := []string{initialPackage}; len(paths) > 0; paths = paths[1:] {
 		path := paths[0]
-		if _, ok := program.Packages().Get(path); ok {
+		if _, ok := program.PackageSet().Get(path); ok {
 			continue
 		}
 
-		pkg := NewPackage(path, program.ImportSet())
-		program.Packages().Set(path, pkg)
+		pkg := NewPackage(path)
+		program.PackageSet().Add(path, pkg)
 
 		fp := find(path)
 		ParseAst(program.FileSet(), pkg, fp...)

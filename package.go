@@ -10,39 +10,33 @@ import (
 	"sync"
 )
 
-type (
-	// Package represents analyzing information.
-	Package struct {
-		sync.Mutex
+// Package represents analyzing information.
+type Package struct {
+	mux sync.Mutex
 
-		path    string                 // package path
-		files   []*ast.File            // container of ast files
-		imports *ImportSet             // shared in global
-		objects map[string]*ast.Object // map of package-level objects
-		info    *types.Info            // uses info
-		deps    Dependencies           // pairs of ident name and Dependency
-	}
-
-	// Packages is a map of Package.
-	Packages map[string]*Package
-)
+	path    string                 // package path
+	files   []*ast.File            // container of ast files
+	objects map[string]*ast.Object // map of package-level objects
+	info    *types.Info            // uses info
+}
 
 // NewPackage returns new Package.
-func NewPackage(path string, imports *ImportSet) *Package {
+func NewPackage(path string) *Package {
 	return &Package{
 		path:    path,
 		files:   nil,
-		imports: imports,
 		objects: make(map[string]*ast.Object),
 		info: &types.Info{
 			Uses: make(map[*ast.Ident]types.Object),
 			// Types:      make(map[ast.Expr]types.TypeAndValue),
-			// Defs:       make(map[*ast.Ident]types.Object),
+			Defs:       make(map[*ast.Ident]types.Object),
 			Selections: make(map[*ast.SelectorExpr]*types.Selection),
 		},
-		deps: make(Dependencies),
 	}
 }
+
+// Path returns package path.
+func (pkg *Package) Path() string { return pkg.path }
 
 // InitObjects compiles all files' objects into one map.
 // This is called after parsing all ast files and before
@@ -50,26 +44,51 @@ func NewPackage(path string, imports *ImportSet) *Package {
 func (pkg *Package) InitObjects() {
 	for _, file := range pkg.files {
 		for k, v := range file.Scope.Objects {
+			k, v := k, v
 			pkg.objects[k] = v
 		}
 	}
 }
 
-// Dependencies returns dependencies.
-func (pkg *Package) Dependencies() Dependencies { return pkg.deps }
+// GetObject gets and returns object which scope is package-level.
+func (pkg *Package) GetObject(key string) (*ast.Object, bool) {
+	o, ok := pkg.objects[key]
+	return o, ok
+}
 
 // PushAstFile push ast.File to files.
 func (pkg *Package) PushAstFile(f *ast.File) {
-	pkg.Lock()
+	pkg.mux.Lock()
 	pkg.files = append(pkg.files, f)
-	pkg.Unlock()
+	pkg.mux.Unlock()
 }
 
-// Set sets the Package to set.
-func (p Packages) Set(path string, pkg *Package) { p[path] = pkg }
+// UsesInfo gets types.Object from types.Info and returns it.
+func (pkg *Package) UsesInfo(i *ast.Ident) (types.Object, bool) {
+	o, ok := pkg.info.Uses[i]
+	return o, ok
+}
+
+// SelInfo gets types.Selection from types.Info and returns it.
+func (pkg *Package) SelInfo(expr *ast.SelectorExpr) (*types.Selection, bool) {
+	s, ok := pkg.info.Selections[expr]
+	return s, ok
+}
+
+// DefInfo gets types.Object from types.Info and returns it.
+func (pkg *Package) DefInfo(i *ast.Ident) (types.Object, bool) {
+	def, ok := pkg.info.Defs[i]
+	return def, ok
+}
+
+// PackageSet is a map of Package.
+type PackageSet map[string]*Package
+
+// Add sets the Package to set.
+func (p PackageSet) Add(path string, pkg *Package) { p[path] = pkg }
 
 // Get gets a Package from set.
-func (p Packages) Get(path string) (*Package, bool) {
+func (p PackageSet) Get(path string) (*Package, bool) {
 	pkg, ok := p[path]
 	return pkg, ok
 }

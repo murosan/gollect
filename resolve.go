@@ -17,14 +17,26 @@ import (
 // AnalyzeForeach executes analyzing dependency for each packages.
 func AnalyzeForeach(program *Program) {
 	var wg sync.WaitGroup
-	for _, pkg := range program.Packages() {
+	fset, dset := program.FileSet(), program.DeclSet()
+	iset, pset := program.ImportSet(), program.PackageSet()
+
+	for _, pkg := range pset {
 		wg.Add(1)
 		go func(pkg *Package) {
-			ExecCheck(program.FileSet(), pkg)
+			ExecCheck(fset, pkg)
 			pkg.InitObjects()
-			ResolveDependency(pkg)
+			NewDeclFinder(dset, iset, pkg).Files(pkg.files)
 			wg.Done()
 		}(pkg)
+	}
+	wg.Wait()
+
+	for _, d := range dset.Values() {
+		wg.Add(1)
+		go func(d Decl) {
+			NewDependencyResolver(dset, iset, pset).Check(d)
+			wg.Done()
+		}(d)
 	}
 	wg.Wait()
 }
@@ -40,124 +52,225 @@ func ExecCheck(fset *token.FileSet, pkg *Package) {
 	}
 }
 
-// ResolveDependency analyzes dependency for each decls.
-func ResolveDependency(pkg *Package) {
-	for _, file := range pkg.files {
-		for _, decl := range file.Decls {
-			resolve(pkg, decl)
-		}
+// DeclFinder find package-level declarations and set it to DeclSet.
+type DeclFinder struct {
+	dset *DeclSet
+	iset *ImportSet
+	pkg  *Package
+}
+
+// NewDeclFinder returns new DeclFinder
+func NewDeclFinder(dset *DeclSet, iset *ImportSet, pkg *Package) *DeclFinder {
+	return &DeclFinder{
+		dset: dset,
+		iset: iset,
+		pkg:  pkg,
 	}
 }
 
-func resolve(pkg *Package, decl ast.Decl) {
-	switch node := decl.(type) {
+// Files finds package-level declarations foreach file.decls concurrently.
+func (f *DeclFinder) Files(files []*ast.File) {
+	var wg sync.WaitGroup
+
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			wg.Add(1)
+
+			go func(decl ast.Decl) {
+				f.Decl(decl)
+				wg.Done()
+			}(decl)
+		}
+	}
+
+	wg.Wait()
+}
+
+// Decl finds package-level declarations from ast.Decl.
+func (f *DeclFinder) Decl(decl ast.Decl) {
+	switch decl := decl.(type) {
 	case *ast.GenDecl:
-		switch node.Tok {
-		case token.VAR, token.CONST, token.TYPE:
-			for _, spec := range node.Specs {
-				switch spec := spec.(type) {
-				case *ast.ValueSpec:
-					for i, id := range spec.Names {
-						name := id.Name
-						if obj, ok := pkg.objects[name]; ok && obj.Decl == spec {
-							pkg.Dependencies().GetOrCreate(name)
-							setDependency(pkg, name, spec.Type)
-							if len(spec.Values) > i {
-								setDependency(pkg, name, spec.Values[i])
-							}
+		f.GenDecl(decl)
+
+	case *ast.FuncDecl:
+		f.FuncDecl(decl)
+	}
+}
+
+// GenDecl finds package-level declarations from ast.GenDecl.
+func (f *DeclFinder) GenDecl(decl *ast.GenDecl) {
+	switch decl.Tok {
+	case token.VAR, token.CONST, token.TYPE:
+		for _, spec := range decl.Specs {
+			switch spec := spec.(type) {
+			case *ast.ValueSpec:
+				for i, id := range spec.Names {
+					name := id.Name
+					obj, ok := f.pkg.GetObject(name)
+					if !ok || obj.Decl != spec {
+						return
+					}
+
+					d := f.dset.GetOrCreate(DecCommon, f.pkg, name)
+					if len(spec.Values) > i {
+						d.SetNode(spec.Values[i])
+					}
+				}
+
+			case *ast.TypeSpec:
+				id := spec.Name
+				tdecl := f.dset.GetOrCreate(DecType, f.pkg, id.Name).(*TypeDecl)
+				tdecl.SetNode(spec)
+
+				if decl.Doc != nil {
+					for _, doc := range decl.Doc.List {
+						if strings.HasPrefix(doc.Text, keepMethods.String()) {
+							tdecl.KeepMethod()
 						}
 					}
-				case *ast.TypeSpec:
-					id := spec.Name.Name
-					pkg.Dependencies().GetOrCreate(id)
-					setDependency(pkg, id, spec.Type)
-					if node.Doc != nil {
-						for _, doc := range node.Doc.List {
-							if strings.HasPrefix(doc.Text, keepMethods.String()) {
-								pkg.Dependencies().TurnOnKeepMethodOption(id)
-							}
+				}
+
+				if def, ok := f.pkg.DefInfo(id); ok {
+					itr := []types.Type{def.Type(), types.NewPointer(def.Type())}
+					for _, t := range itr {
+						mset := types.NewMethodSet(t)
+						for i := 0; i < mset.Len(); i++ {
+							m := mset.At(i)
+							mdecl := f.dset.GetOrCreate(
+								DecMethod,
+								f.pkg,
+								id.Name,
+								m.Obj().Name(),
+							).(*MethodDecl)
+							mdecl.SetType(tdecl)
+							tdecl.SetMethod(mdecl)
 						}
 					}
 				}
 			}
 		}
-
-	case *ast.FuncDecl:
-		id := node.Name.Name
-
-		if node.Recv != nil {
-			var typeID *ast.Ident
-			switch expr := node.Recv.List[0].Type.(type) {
-			case *ast.Ident:
-				typeID = expr
-			case *ast.StarExpr:
-				typeID = expr.X.(*ast.Ident)
-			}
-
-			if typeID != nil {
-				id = typeID.Name + "." + id
-				pkg.Dependencies().SetMethod(typeID.Name, id)
-				pkg.Dependencies().SetInternal(id, typeID.Name)
-			}
-		}
-
-		pkg.Dependencies().GetOrCreate(id)
-		setDependency(pkg, id, node)
 	}
 }
 
-func setDependency(pkg *Package, id string, node ast.Node) {
-	if node == nil {
+// FuncDecl finds package-level declarations from ast.FuncDecl.
+func (f *DeclFinder) FuncDecl(decl *ast.FuncDecl) {
+	name := decl.Name.Name
+
+	if decl.Recv == nil {
+		d := f.dset.GetOrCreate(DecCommon, f.pkg, name)
+		d.SetNode(decl)
 		return
 	}
 
-	ast.Inspect(node, func(node ast.Node) bool {
+	recvID := receiverID(decl.Recv.List[0].Type)
+	if recvID != nil {
+		md := f.dset.GetOrCreate(DecMethod, f.pkg, recvID.Name, name)
+		md.SetNode(decl)
+	}
+}
+
+func receiverID(expr ast.Expr) *ast.Ident {
+	switch expr := expr.(type) {
+	case *ast.Ident:
+		return expr
+	case *ast.StarExpr:
+		return expr.X.(*ast.Ident)
+	default:
+		return nil
+	}
+}
+
+// DependencyResolver provides a method for checking dependency.
+type DependencyResolver struct {
+	dset *DeclSet
+	iset *ImportSet
+	pset PackageSet
+}
+
+// NewDependencyResolver returns new DependencyResolver
+func NewDependencyResolver(dset *DeclSet, iset *ImportSet, pset PackageSet) *DependencyResolver {
+	return &DependencyResolver{
+		dset: dset,
+		iset: iset,
+		pset: pset,
+	}
+}
+
+// Check checks on which given decl depending on.
+func (r *DependencyResolver) Check(decl Decl) {
+	if decl.Node() == nil {
+		return
+	}
+
+	ast.Inspect(decl.Node(), func(node ast.Node) bool {
 		switch node := node.(type) {
 		case *ast.SelectorExpr:
-			if sel, ok := pkg.info.Selections[node]; ok {
-				if n := named(sel.Recv()); n != nil {
-					path := n.Obj().Pkg().Path()
-					if !isBuiltinPackage(path) {
-						pkg.Dependencies().SetExternal(id, path, n.Obj().Name()+"."+node.Sel.Name)
-					}
+			if sel, ok := decl.Pkg().SelInfo(node); ok {
+				n := named(sel.Recv())
+				if n == nil {
+					return true
 				}
+
+				path := n.Obj().Pkg().Path()
+				if isBuiltinPackage(path) {
+					return true
+				}
+
+				pkg, ok := r.pset.Get(path)
+				if !ok {
+					return true
+				}
+
+				d, ok := r.dset.Get(pkg, n.Obj().Name(), node.Sel.Name)
+				if ok {
+					decl.Uses(d)
+				}
+
 				return true
 			}
 
-			if i, ok := node.X.(*ast.Ident); ok && i != nil {
-				switch uses := pkg.info.Uses[i].(type) {
+			if id, ok := node.X.(*ast.Ident); ok && id != nil {
+				uses, _ := decl.Pkg().UsesInfo(id)
+				switch uses := uses.(type) {
 				case *types.PkgName:
-					p := uses.Imported()
-					alias, name, path := i.Name, p.Name(), p.Path()
+					imported := uses.Imported()
+					alias, name, path := id.Name, imported.Name(), imported.Path()
 					if name == alias {
 						alias = ""
 					}
 
-					i := pkg.imports.GetOrCreate(alias, name, path)
-					pkg.Dependencies().SetImport(id, i)
+					i := r.iset.GetOrCreate(alias, name, path)
+					decl.UsesImport(i)
+					pkg, ok := r.pset.Get(path)
 
-					if !isBuiltinPackage(path) {
-						pkg.Dependencies().SetExternal(id, path, node.Sel.Name)
+					if !ok || isBuiltinPackage(path) {
+						return true
+					}
+
+					d, ok := r.dset.Get(pkg, node.Sel.Name)
+					if ok {
+						decl.Uses(d)
 					}
 				}
 			}
 
 		case *ast.Ident:
-			if _, ok := pkg.objects[node.Name]; !ok {
+			if _, ok := decl.Pkg().GetObject(node.Name); !ok {
 				// break when the object is
 				//   - not a package-level declaration
 				//   - an external package object
 				break
 			}
 
-			uses, ok := pkg.info.Uses[node]
+			uses, ok := decl.Pkg().UsesInfo(node)
 			if !ok || uses.Pkg() == nil || isBuiltinPackage(uses.Pkg().Path()) {
 				break
 			}
 
 			switch obj := uses.(type) {
 			case *types.Const, *types.Var, *types.Func, *types.TypeName:
-				pkg.Dependencies().SetInternal(id, obj.Name())
+				d, _ := r.dset.Get(decl.Pkg(), obj.Name())
+				decl.Uses(d)
 			}
 		}
 

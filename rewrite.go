@@ -13,14 +13,28 @@ import (
 	"golang.org/x/tools/go/ast/astutil"
 )
 
-// FilterDecls returns new slice that consists of used declarations.
+// Filter provides a method for filtering slice of ast.Decl.
+type Filter struct {
+	dset *DeclSet
+	pkg  *Package
+}
+
+// NewFilter returns new Filter.
+func NewFilter(dset *DeclSet, pkg *Package) *Filter {
+	return &Filter{
+		dset: dset,
+		pkg:  pkg,
+	}
+}
+
+// Decls returns new slice that consists of used declarations.
 // All unused declaration will be removed.
 // Be careful this method manipulates decls directly.
-func FilterDecls(deps Dependencies, decls []ast.Decl) (res []ast.Decl) {
+func (f *Filter) Decls(decls []ast.Decl) (res []ast.Decl) {
 	for _, decl := range decls {
 		switch decl := decl.(type) {
 		case *ast.GenDecl:
-			filterGenDecl(deps, decl)
+			f.genDecl(decl)
 			if l := len(decl.Specs); l != 0 {
 				if l == 1 {
 					decl.Lparen, decl.Rparen = 0, 0 // delete '(' and ')'
@@ -29,7 +43,7 @@ func FilterDecls(deps Dependencies, decls []ast.Decl) (res []ast.Decl) {
 			}
 
 		case *ast.FuncDecl:
-			if isUsedFuncDecl(deps, decl) {
+			if f.isUsedFuncDecl(decl) {
 				res = append(res, decl)
 			}
 		}
@@ -37,10 +51,10 @@ func FilterDecls(deps Dependencies, decls []ast.Decl) (res []ast.Decl) {
 	return
 }
 
-func filterGenDecl(deps Dependencies, node *ast.GenDecl) {
+func (f *Filter) genDecl(node *ast.GenDecl) {
 	switch node.Tok {
 	case token.VAR, token.CONST, token.TYPE:
-		node.Specs = filterSpecs(deps, node.Specs)
+		node.Specs = f.specs(node.Specs)
 
 	case token.IMPORT:
 		// remove all imports to add unique ones later
@@ -48,20 +62,20 @@ func filterGenDecl(deps Dependencies, node *ast.GenDecl) {
 	}
 
 	// remove gollect annotation comments
-	filterAnnotation(node)
+	f.annotation(node)
 }
 
-func filterSpecs(deps Dependencies, specs []ast.Spec) (res []ast.Spec) {
+func (f *Filter) specs(specs []ast.Spec) (res []ast.Spec) {
 	for _, spec := range specs {
 		switch spec := spec.(type) {
 		case *ast.ValueSpec:
-			filterValueSpec(deps, spec)
+			f.valueSpec(spec)
 			if len(spec.Names) != 0 {
 				res = append(res, spec)
 			}
 
 		case *ast.TypeSpec:
-			if deps.IsUsed(spec.Name.Name) {
+			if f.isUsed(spec.Name.Name) {
 				res = append(res, spec)
 			}
 		}
@@ -69,12 +83,12 @@ func filterSpecs(deps Dependencies, specs []ast.Spec) (res []ast.Spec) {
 	return
 }
 
-func filterValueSpec(deps Dependencies, spec *ast.ValueSpec) {
+func (f *Filter) valueSpec(spec *ast.ValueSpec) {
 	var names []*ast.Ident
 	var values []ast.Expr
 
 	for i, id := range spec.Names {
-		if deps.IsUsed(id.Name) {
+		if f.isUsed(id.Name) {
 			names = append(names, id)
 			if len(spec.Values) > i {
 				values = append(values, spec.Values[i])
@@ -86,52 +100,67 @@ func filterValueSpec(deps Dependencies, spec *ast.ValueSpec) {
 	spec.Values = values
 }
 
-func isUsedFuncDecl(deps Dependencies, decl *ast.FuncDecl) bool {
-	id := decl.Name.Name
+func (f *Filter) isUsedFuncDecl(decl *ast.FuncDecl) bool {
+	var keys []string
 
 	if decl.Recv != nil {
 		switch expr := decl.Recv.List[0].Type.(type) {
 		case *ast.Ident:
-			id = expr.Name + "." + id
+			keys = append(keys, expr.Name)
 		case *ast.StarExpr:
-			id = expr.X.(*ast.Ident).Name + "." + id
+			keys = append(keys, expr.X.(*ast.Ident).Name)
 		}
 	}
 
-	return id != "" && deps.IsUsed(id)
+	keys = append(keys, decl.Name.Name)
+	return f.isUsed(keys...)
 }
 
-func filterAnnotation(node *ast.GenDecl) {
-	if node.Doc != nil {
-		var docs []*ast.Comment
-		for _, doc := range node.Doc.List {
-			if !strings.Contains(doc.Text, annotationPrefix) {
-				docs = append(docs, doc)
-			}
-		}
-		node.Doc.List = docs
+func (f *Filter) annotation(node *ast.GenDecl) {
+	if node.Doc == nil {
+		return
 	}
+	docs := make([]*ast.Comment, len(node.Doc.List))
+	i := 0
+	for _, doc := range node.Doc.List {
+		doc := doc
+		if !strings.Contains(doc.Text, annotationPrefix) {
+			docs[i] = doc
+			i++
+		}
+	}
+	node.Doc.List = docs[:i]
 }
 
-// RemoveExternalIdents removes external package's selectors.
+func (f *Filter) isUsed(id ...string) bool {
+	b, ok := f.dset.Get(f.pkg, id...)
+	return ok && b.IsUsed()
+}
+
+// PackageSelectorExpr removes external package's selectors.
 //
 //   fmt.Println() → fmt.Println() // keep builtin packages
 //   mypkg.SomeFunc() → SomeFunc() // remove package selector
 //
-func RemoveExternalIdents(node ast.Node, pkg *Package) {
+func (f *Filter) PackageSelectorExpr(node ast.Node) {
 	astutil.Apply(node, func(cr *astutil.Cursor) bool {
 		switch n := cr.Node().(type) {
 		case nil:
 			return false
 
 		case *ast.SelectorExpr:
-			if i, ok := n.X.(*ast.Ident); ok && i != nil {
-				if pn, ok := pkg.info.Uses[i].(*types.PkgName); ok {
-					if !isBuiltinPackage(pn.Imported().Path()) {
-						cr.Replace(n.Sel)
-					}
-				}
+			i, ok := n.X.(*ast.Ident)
+			if !ok || i == nil {
+				break
 			}
+
+			uses, _ := f.pkg.UsesInfo(i)
+			pn, ok := uses.(*types.PkgName)
+			if !ok || isBuiltinPackage(pn.Imported().Path()) {
+				break
+			}
+
+			cr.Replace(n.Sel)
 		}
 
 		return true

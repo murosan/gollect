@@ -15,16 +15,16 @@ func TestParseAll(t *testing.T) {
 	program := NewProgram()
 	paths, _ := filepath.Glob(testdata.FilePaths.Parse)
 
-	if program.Packages() == nil ||
+	if program.PackageSet() == nil ||
 		program.ImportSet() == nil ||
 		program.ImportSet().Len() != 0 ||
 		len(paths) == 0 ||
-		len(program.Packages()) != 0 {
+		len(program.PackageSet()) != 0 {
 		t.Fatalf("something is wrong. %v", program)
 	}
 
 	ParseAll(program, "main", paths)
-	packages := program.Packages()
+	packages := program.PackageSet()
 
 	if len(packages) != 3 {
 		t.Errorf("len=%d, packages=%v", len(packages), packages)

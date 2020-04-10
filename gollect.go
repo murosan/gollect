@@ -26,10 +26,11 @@ func Main(config *Config) error {
 	ParseAll(p, "main", paths)
 	AnalyzeForeach(p)
 
-	// mark all used declarations
-	next := []ExternalDependencySet{{}}
-	next[0].Add("main", "main")
-	UseAll(p.Packages(), next)
+	// call Use() for all used declarations
+	pset, dset := p.PackageSet(), p.DeclSet()
+	pkg, _ := pset.Get("main")
+	decl, _ := dset.Get(pkg, "main")
+	decl.Use()
 
 	w := &writer{
 		config:   config,
