@@ -10,6 +10,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/sergi/go-diff/diffmatchpatch"
+
 	"github.com/murosan/gollect/testdata"
 )
 
@@ -51,16 +53,15 @@ func TestGollect(t *testing.T) {
 			}
 
 			if !bytes.Equal(expected, actual) {
+				dmp := diffmatchpatch.New()
+				diff := dmp.DiffMain(string(expected), string(actual), false)
 				t.Errorf(`
 ===================================================================
 At: %d
-Expected:
-%s
-
-Actual:
+Diff:
 %s
 ===================================================================
-`, i, expected, actual)
+`, i, dmp.DiffPrettyText(diff))
 			}
 		})
 	}
