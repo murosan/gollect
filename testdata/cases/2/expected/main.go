@@ -4,7 +4,11 @@ import "fmt"
 
 const ConstA = 100
 
-const constB int = 300
+const (
+	constB int = 300
+
+	constD = 1000
+)
 
 var varA = 600
 var (
@@ -20,6 +24,7 @@ func main() {
 	fmt.Println(
 		ConstA,
 		constB,
+		constD,
 		varA,
 		varB,
 		varC,

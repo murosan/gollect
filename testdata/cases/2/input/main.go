@@ -8,6 +8,8 @@ const constA  = 200
 const (
 	constB int =           300
 		constC  = 400
+	_ = 900
+	constD = 1000
 )
 
  var VarA = 500
@@ -29,6 +31,7 @@ func main() {
 	fmt.Println(
 		ConstA,
 		constB,
+		constD,
 		varA,
 		varB,
 		varC,

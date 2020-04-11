@@ -118,7 +118,7 @@ func (f *DeclFinder) GenDecl(decl *ast.GenDecl) {
 					name := id.Name
 					obj, ok := f.pkg.GetObject(name)
 					if !ok || obj.Decl != spec {
-						return
+						continue
 					}
 
 					d := f.dset.GetOrCreate(DecCommon, f.pkg, name)
