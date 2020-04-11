@@ -14,7 +14,7 @@ import (
 // DeclType represents declaration type.
 type DeclType int
 
-func (t DeclType) String() string { return fmt.Sprint(int(t)) }
+func (t DeclType) String() string { return "DeclType(" + fmt.Sprint(int(t)) + ")" }
 
 const (
 	_ DeclType = iota
@@ -38,6 +38,7 @@ type Decl interface {
 	Use()
 	Uses(Decl)
 	UsesImport(*Import)
+	fmt.Stringer
 }
 
 const sep = ";"
@@ -124,6 +125,8 @@ func (d *CommonDecl) Use() {
 		d.Use()
 	}
 }
+
+func (d *CommonDecl) String() string { return declToString(d) }
 
 // TypeDecl represents Type declaration.
 type TypeDecl struct {
@@ -229,6 +232,46 @@ func (d *MethodDecl) Use() {
 	d.Type().Use()
 }
 
+func declToString(decl Decl) string {
+	var tpe string
+	switch decl.(type) {
+	case *CommonDecl:
+		tpe = "CommonDecl"
+	case *TypeDecl:
+		tpe = "TypeDecl"
+	case *MethodDecl:
+		tpe = "MethodDecl"
+	}
+
+	uses := fmt.Sprintf(
+		"{dset:%s,iset:%s}",
+		decl.(*CommonDecl).uses.decls.String(),
+		decl.(*CommonDecl).uses.imports.String(),
+	)
+	s := fmt.Sprintf(
+		`%s{id:"%s",used:%t,uses:%s`,
+		tpe, decl.ID(), decl.IsUsed(), uses,
+	)
+
+	switch decl := decl.(type) {
+	case *TypeDecl:
+		var ids []string
+		for _, m := range decl.methods.mset {
+			ids = append(ids, m.ID())
+		}
+		s += fmt.Sprintf(
+			",methods{%s},methods.keep:%t",
+			strings.Join(ids, ","),
+			decl.methods.keep,
+		)
+	case *MethodDecl:
+		s += fmt.Sprintf(",embedded:%t", decl.IsEmbedded())
+	}
+
+	s += "}"
+	return s
+}
+
 // DeclSet is a set of Decl
 type DeclSet struct {
 	mux  sync.RWMutex
@@ -282,4 +325,12 @@ func (s *DeclSet) Values() []Decl {
 		i++
 	}
 	return a
+}
+
+func (s *DeclSet) String() string {
+	var v []string
+	for _, d := range s.dset {
+		v = append(v, fmt.Sprintf(`"%s"`, d.ID()))
+	}
+	return "DeclSet{" + strings.Join(v, ",") + "}"
 }

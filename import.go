@@ -149,3 +149,7 @@ func (s *ImportSet) ToDecl() *ast.GenDecl {
 
 	return d
 }
+
+func (s *ImportSet) String() string {
+	return fmt.Sprint(s.iset)
+}
