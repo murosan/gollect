@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 type A int
 
 const (
@@ -45,5 +43,11 @@ const (
 )
 
 func main() {
-	fmt.Println(two, numB, numD, d, g, l, m)
+	_ = two
+	_ = numB
+	_ = numD
+	_ = d
+	_ = g
+	_ = l
+	_ = m
 }

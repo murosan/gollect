@@ -1,15 +1,17 @@
 package main
 
-import "io"
-
 type A struct{ B }
 
 type B struct{ C }
 
 func (B) b() {}
 
+type Writer interface {
+	Write(p []byte) (n int, err error)
+}
+
 type C struct {
-	io.Writer
+	Writer
 	// unused field, but this should be left.
 	unused func()
 }

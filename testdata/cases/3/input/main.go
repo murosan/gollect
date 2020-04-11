@@ -1,15 +1,15 @@
 package main
 
-import (
-	"io"
-)
-
 func main() {
 	newT()
 }
 
+type reader interface {
+	Read(p []byte) (n int, err error)
+}
+
 type T interface {
-	Do(r io.Reader)
+	Do(r reader)
 }
 
 func newT() T {
@@ -19,6 +19,6 @@ func newT() T {
 // gollect: keep methods
 type t struct{}
 
-func (*t) Do(r io.Reader) {}
+func (*t) Do(r reader) {}
 
 func (*t) Do2() {}
