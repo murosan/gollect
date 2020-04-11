@@ -101,6 +101,10 @@ func (f *Filter) valueSpec(spec *ast.ValueSpec) {
 }
 
 func (f *Filter) isUsedFuncDecl(decl *ast.FuncDecl) bool {
+	if decl.Recv == nil && decl.Name.Name == "init" {
+		return true
+	}
+
 	var keys []string
 
 	if decl.Recv != nil {
