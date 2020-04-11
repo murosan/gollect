@@ -110,54 +110,112 @@ func (f *DeclFinder) Decl(decl ast.Decl) {
 // GenDecl finds package-level declarations from ast.GenDecl.
 func (f *DeclFinder) GenDecl(decl *ast.GenDecl) {
 	switch decl.Tok {
-	case token.VAR, token.CONST, token.TYPE:
-		for _, spec := range decl.Specs {
-			switch spec := spec.(type) {
-			case *ast.ValueSpec:
-				for _, id := range spec.Names {
-					name := id.Name
-					obj, ok := f.pkg.GetObject(name)
-					if !ok || obj.Decl != spec {
-						continue
-					}
+	case token.VAR, token.CONST:
+		f.varSpecs(decl)
+	case token.TYPE:
+		f.typeSpecs(decl)
+	}
+}
 
-					d := f.dset.GetOrCreate(DecCommon, f.pkg, name)
-					d.SetNode(spec)
+func (f *DeclFinder) varSpecs(decl *ast.GenDecl) {
+	var prev Decl
+	iota := f.hasIota(decl)
+
+	for _, spec := range decl.Specs {
+		spec, ok := spec.(*ast.ValueSpec)
+		if !ok {
+			continue
+		}
+
+		for _, id := range spec.Names {
+			name := nameForUnderscore(id)
+			d := f.dset.GetOrCreate(DecCommon, f.pkg, name)
+			d.SetNode(spec)
+			if prev != nil {
+				if iota {
+					d.Uses(prev)
+					prev.Uses(d)
+				} else if len(spec.Values) == 0 {
+					d.Uses(prev)
+				}
+			}
+			prev = d
+		}
+	}
+}
+
+func (f *DeclFinder) hasIota(decl *ast.GenDecl) (has bool) {
+	for _, spec := range decl.Specs {
+		spec, ok := spec.(*ast.ValueSpec)
+		if !ok {
+			continue
+		}
+
+		for _, v := range spec.Values {
+			ast.Inspect(v, func(node ast.Node) bool {
+				id, ok := node.(*ast.Ident)
+				if !ok || id.Name != "iota" {
+					return true
 				}
 
-			case *ast.TypeSpec:
-				id := spec.Name
-				tdecl := f.dset.GetOrCreate(DecType, f.pkg, id.Name).(*TypeDecl)
-				tdecl.SetNode(spec)
-
-				if decl.Doc != nil {
-					for _, doc := range decl.Doc.List {
-						if strings.HasPrefix(doc.Text, keepMethods.String()) {
-							tdecl.KeepMethod()
-						}
-					}
+				uses, ok := f.pkg.UsesInfo(id)
+				if !ok || uses.Parent() != types.Universe {
+					return true
 				}
 
-				if def, ok := f.pkg.DefInfo(id); ok {
-					itr := []types.Type{def.Type(), types.NewPointer(def.Type())}
-					for _, t := range itr {
-						mset := types.NewMethodSet(t)
-						for i := 0; i < mset.Len(); i++ {
-							m := mset.At(i)
-							mdecl := f.dset.GetOrCreate(
-								DecMethod,
-								f.pkg,
-								id.Name,
-								m.Obj().Name(),
-							).(*MethodDecl)
-							if len(m.Index()) >= 2 {
-								mdecl.SetEmbedded(true)
-							}
-							mdecl.SetType(tdecl)
-							tdecl.SetMethod(mdecl)
-						}
-					}
+				has = true
+				return false
+			})
+
+			if has {
+				return
+			}
+		}
+	}
+	return
+}
+
+func (f *DeclFinder) typeSpecs(decl *ast.GenDecl) {
+	for _, spec := range decl.Specs {
+		spec, ok := spec.(*ast.TypeSpec)
+		if !ok {
+			continue
+		}
+
+		id := spec.Name
+		tdecl := f.dset.GetOrCreate(DecType, f.pkg, id.Name).(*TypeDecl)
+		tdecl.SetNode(spec)
+
+		if decl.Doc != nil {
+			for _, doc := range decl.Doc.List {
+				if strings.HasPrefix(doc.Text, keepMethods.String()) {
+					tdecl.KeepMethod()
 				}
+			}
+		}
+
+		def, ok := f.pkg.DefInfo(id)
+		if !ok {
+			continue
+		}
+
+		// fill methods
+		// https://pkg.go.dev/go/types?tab=doc#example-MethodSet
+		for _, t := range []types.Type{def.Type(), types.NewPointer(def.Type())} {
+			mset := types.NewMethodSet(t)
+			for i := 0; i < mset.Len(); i++ {
+				m := mset.At(i)
+				mdecl := f.dset.GetOrCreate(
+					DecMethod,
+					f.pkg,
+					id.Name,
+					m.Obj().Name(),
+				).(*MethodDecl)
+				if len(m.Index()) >= 2 {
+					mdecl.SetEmbedded(true)
+				}
+				mdecl.SetType(tdecl)
+				tdecl.SetMethod(mdecl)
 			}
 		}
 	}

@@ -88,7 +88,8 @@ func (f *Filter) valueSpec(spec *ast.ValueSpec) {
 	var values []ast.Expr
 
 	for i, id := range spec.Names {
-		if f.isUsed(id.Name) {
+		name := nameForUnderscore(id)
+		if f.isUsed(name) {
 			names = append(names, id)
 			if len(spec.Values) > i {
 				values = append(values, spec.Values[i])

@@ -47,6 +47,14 @@ func makeID(p *Package, s ...string) string {
 	return p.Path() + sep + strings.Join(s, sep)
 }
 
+func nameForUnderscore(id *ast.Ident) string {
+	name := id.Name
+	if name == "_" {
+		name += fmt.Sprint(int(id.NamePos))
+	}
+	return name
+}
+
 // NewDecl return new Decl
 func NewDecl(t DeclType, pkg *Package, ids ...string) Decl {
 	switch t {
