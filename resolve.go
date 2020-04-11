@@ -114,7 +114,7 @@ func (f *DeclFinder) GenDecl(decl *ast.GenDecl) {
 		for _, spec := range decl.Specs {
 			switch spec := spec.(type) {
 			case *ast.ValueSpec:
-				for i, id := range spec.Names {
+				for _, id := range spec.Names {
 					name := id.Name
 					obj, ok := f.pkg.GetObject(name)
 					if !ok || obj.Decl != spec {
@@ -122,9 +122,7 @@ func (f *DeclFinder) GenDecl(decl *ast.GenDecl) {
 					}
 
 					d := f.dset.GetOrCreate(DecCommon, f.pkg, name)
-					if len(spec.Values) > i {
-						d.SetNode(spec.Values[i])
-					}
+					d.SetNode(spec)
 				}
 
 			case *ast.TypeSpec:

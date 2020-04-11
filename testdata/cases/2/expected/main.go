@@ -16,6 +16,10 @@ var (
 	varC int = 800
 )
 
+type A struct{}
+
+var one A
+
 func Nums() []int {
 	return []int{10, 20, 30}
 }
@@ -29,5 +33,6 @@ func main() {
 		varB,
 		varC,
 		Nums(),
+		one,
 	)
 }
