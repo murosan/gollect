@@ -17,6 +17,16 @@ A tool for competitive programming in Go.
 go get -u github.com/murosan/gollect/cmd/gollect
 ```
 
+It parses AST at runtime, so it depends on the GoLang's version installed.  
+Please reinstall when you upgrade (or downgrade) GoLang.
+
+To reinstall, do the following:
+
+```sh
+rm -i $GOPATH/bin/gollect
+go get -u github.com/murosan/gollect/cmd/gollect
+```
+
 ## Usage
 
 Suppose you have implemented the following `Max` function in the `lib` package:
@@ -41,7 +51,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/your-name/repo-name/lib"
+	"github.com/owner-name/repo-name/lib"
 )
 
 func main() {

@@ -13,6 +13,17 @@ Go で競技プログラミングを行うためのツールです。
 go get -u github.com/murosan/gollect/cmd/gollect
 ```
 
+実行時に AST をパースしている関係で、インストール時の Go のバージョンに依存しています。  
+Go のバージョンを変更したときは、再インストールしてください。
+
+再インストールする方法:
+
+```sh
+rm -i $GOPATH/bin/gollect
+go get -u github.com/murosan/gollect/cmd/gollect
+```
+
+
 ## 使い方
 
 以下のような `Max` 関数を `lib` パッケージに実装したとします。
