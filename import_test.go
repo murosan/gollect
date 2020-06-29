@@ -107,12 +107,12 @@ func TestImportSet(t *testing.T) {
 	name := "fmt"
 	i1 := NewImport("", name, "fmt")
 
-	if _, ok := set.Get(name); ok {
+	if _, ok := set.iset[name]; ok {
 		t.Errorf("wrong initial state")
 	}
 
-	set.Add(i1)
-	if v, ok := set.Get(name); !ok || v != i1 {
+	set.AddAndGet(i1)
+	if v, ok := set.iset[name]; !ok || v != i1 {
 		t.Errorf("failing to set")
 	}
 
@@ -145,11 +145,11 @@ func TestImportSet_ToDecl(t *testing.T) {
 	i4.Use()
 	i5.Use()
 
-	set.Add(i1)
-	set.Add(i2)
-	set.Add(i3)
-	set.Add(i4)
-	set.Add(i5)
+	set.AddAndGet(i1)
+	set.AddAndGet(i2)
+	set.AddAndGet(i3)
+	set.AddAndGet(i4)
+	set.AddAndGet(i5)
 
 	want := &ast.GenDecl{
 		Tok:    token.IMPORT,
@@ -167,7 +167,7 @@ func TestImportSet_ToDecl2(t *testing.T) {
 	set := NewImportSet()
 	i1 := NewImport("", "fmt", "fmt")
 	i1.Use()
-	set.Add(i1)
+	set.AddAndGet(i1)
 
 	want := &ast.GenDecl{
 		Tok:    token.IMPORT,

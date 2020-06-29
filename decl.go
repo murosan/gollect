@@ -118,7 +118,7 @@ func (d *CommonDecl) IsUsed() bool { return d.used }
 func (d *CommonDecl) Uses(decl Decl) { d.uses.decls.Add(decl) }
 
 // UsesImport sets given import to dependency map.
-func (d *CommonDecl) UsesImport(i *Import) { d.uses.imports.Add(i) }
+func (d *CommonDecl) UsesImport(i *Import) { d.uses.imports.AddAndGet(i) }
 
 // Use change this and its dependencies' used field to true.
 func (d *CommonDecl) Use() {

@@ -98,30 +98,24 @@ func (s *ImportSet) Values() []*Import {
 	return a
 }
 
-// Add adds the Import to set.
-func (s *ImportSet) Add(i *Import) {
+// AddAndGet gets an Import form set if exists, otherwise
+// creates new one and returns it.
+func (s *ImportSet) AddAndGet(i *Import) *Import {
 	s.mux.Lock()
-	s.iset[i.AliasOrName()] = i
-	s.mux.Unlock()
-}
+	defer s.mux.Unlock()
 
-// Get gets an Import from set.
-func (s *ImportSet) Get(key string) (*Import, bool) {
-	s.mux.RLock()
-	v, ok := s.iset[key]
-	s.mux.RUnlock()
-	return v, ok
-}
-
-// GetOrCreate gets an Import form set, if the set has no matched value
-// creates new one.
-func (s *ImportSet) GetOrCreate(alias, name, path string) *Import {
-	i := NewImport(alias, name, path)
-	if v, ok := s.Get(i.AliasOrName()); ok {
+	if v, ok := s.iset[i.AliasOrName()]; ok {
 		return v
 	}
-	s.Add(i)
+
+	s.iset[i.AliasOrName()] = i
 	return i
+}
+
+// GetOrCreate gets an Import form set if exists, otherwise
+// creates new one and returns it.
+func (s *ImportSet) GetOrCreate(alias, name, path string) *Import {
+	return s.AddAndGet(NewImport(alias, name, path))
 }
 
 // ToDecl creates ast.GenDecl and returns it.
