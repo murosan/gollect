@@ -2,6 +2,7 @@ package gollect
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"golang.org/x/tools/go/packages"
@@ -15,7 +16,10 @@ func TestIsBuiltin(t *testing.T) {
 
 	m := make(map[string]interface{})
 	for _, pkg := range pkgs {
-		m[pkg.PkgPath] = struct{}{}
+		p := pkg.PkgPath
+		if !strings.Contains(p, "internal/") {
+			m[pkg.PkgPath] = struct{}{}
+		}
 	}
 
 	eq := reflect.DeepEqual(m, builtinPackages)
