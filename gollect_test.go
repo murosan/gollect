@@ -32,7 +32,7 @@ func TestGollect(t *testing.T) {
 			}
 
 			if _, err := os.Stat(tc.ActualDir); os.IsNotExist(err) {
-				if err := os.Mkdir(tc.ActualDir, 0755); err != nil {
+				if err := os.MkdirAll(tc.ActualDir, 0755); err != nil {
 					fatal(t, i, "create actual dir", err)
 				}
 			}
