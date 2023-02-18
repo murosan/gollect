@@ -31,7 +31,7 @@ func TestGollect(t *testing.T) {
 				t.Fatalf("At: %d, %s, %v", i, msg, err)
 			}
 
-			if _, err := os.Stat(tc.ActualDir); err != nil {
+			if _, err := os.Stat(tc.ActualDir); os.IsNotExist(err) {
 				if err := os.Mkdir(tc.ActualDir, 0755); err != nil {
 					fatal(t, i, "create actual dir", err)
 				}
