@@ -22,7 +22,7 @@ type (
 	// ImportSet is a set of Import.
 	ImportSet struct {
 		mux  sync.RWMutex
-		iset map[string]*Import
+		iset []*Import
 	}
 )
 
@@ -34,15 +34,6 @@ func NewImport(alias, name, path string) *Import {
 		path:  path,
 		used:  false,
 	}
-}
-
-// AliasOrName returns alias if the alias is non-empty otherwise returns name.
-// The return value is expected to be used as a key of ImportSet.
-func (i *Import) AliasOrName() string {
-	if i.alias != "" {
-		return i.alias
-	}
-	return i.name
 }
 
 // ToSpec creates and returns ast.ImportSpec.
@@ -74,7 +65,7 @@ func (i *Import) String() string {
 
 // NewImportSet returns new ImportSet.
 func NewImportSet() *ImportSet {
-	return &ImportSet{iset: make(map[string]*Import)}
+	return &ImportSet{iset: make([]*Import, 0)}
 }
 
 // Len returns length of map.
@@ -88,13 +79,8 @@ func (s *ImportSet) Len() int {
 func (s *ImportSet) Values() []*Import {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
-	i := 0
 	a := make([]*Import, len(s.iset))
-	for _, v := range s.iset {
-		v := v
-		a[i] = v
-		i++
-	}
+	copy(a, s.iset)
 	return a
 }
 
@@ -104,11 +90,15 @@ func (s *ImportSet) AddAndGet(i *Import) *Import {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
-	if v, ok := s.iset[i.AliasOrName()]; ok {
-		return v
+	for _, v := range s.iset {
+		if v.alias == i.alias &&
+			v.name == i.name &&
+			v.path == i.path {
+			return v
+		}
 	}
 
-	s.iset[i.AliasOrName()] = i
+	s.iset = append(s.iset, i)
 	return i
 }
 

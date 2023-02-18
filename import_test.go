@@ -11,18 +11,6 @@ import (
 	"testing"
 )
 
-func TestImport_AliasOrName(t *testing.T) {
-	i1 := NewImport("alias", "name", "path")
-	if i1.AliasOrName() != i1.alias {
-		t.Errorf("want: %s, actual: %s", i1.alias, i1.AliasOrName())
-	}
-
-	i2 := NewImport("", "name", "path")
-	if i2.AliasOrName() != i2.name {
-		t.Errorf("want: %s, actual: %s", i2.name, i2.AliasOrName())
-	}
-}
-
 func TestImport_ToSpec(t *testing.T) {
 	cases := []struct {
 		in   *Import
@@ -107,12 +95,21 @@ func TestImportSet(t *testing.T) {
 	name := "fmt"
 	i1 := NewImport("", name, "fmt")
 
-	if _, ok := set.iset[name]; ok {
+	exists := func(i *Import) bool {
+		for _, v := range set.iset {
+			if v == i {
+				return true
+			}
+		}
+		return false
+	}
+
+	if exists(i1) {
 		t.Errorf("wrong initial state")
 	}
 
 	set.AddAndGet(i1)
-	if v, ok := set.iset[name]; !ok || v != i1 {
+	if !exists(i1) {
 		t.Errorf("failing to set")
 	}
 

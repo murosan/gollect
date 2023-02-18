@@ -18,8 +18,6 @@ import (
 
 func TestGollect(t *testing.T) {
 	for i, tc := range testdata.Cases {
-		i, tc := i, tc // copy
-
 		t.Run(tc.Input, func(t *testing.T) {
 			t.Parallel()
 
