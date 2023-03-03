@@ -6,6 +6,7 @@ package gollect
 
 import (
 	"errors"
+	"io"
 	"io/ioutil"
 	"strings"
 
@@ -21,6 +22,8 @@ type Config struct {
 	// list of output paths
 	// filepath, 'stdout' or 'clipboard' are available
 	OutputPaths []string `yaml:"outputPaths"`
+
+	output io.Writer // used by test
 }
 
 // LoadConfig loads config from yaml file.

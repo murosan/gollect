@@ -33,6 +33,10 @@ func (w *writer) writeForeach() error {
 			return fmt.Errorf("write: %w", err)
 		}
 	}
+	if w.config.output != nil {
+		// for test
+		w.config.output.Write(w.buf.Bytes())
+	}
 	return nil
 }
 

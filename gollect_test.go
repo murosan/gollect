@@ -16,52 +16,57 @@ import (
 	"github.com/murosan/gollect/testdata"
 )
 
+var (
+	// if env var 'DEBUG' is not empty, outputs actual results to file
+	debug = os.Getenv("DEBUG") != ""
+)
+
 func TestGollect(t *testing.T) {
 	for i, tc := range testdata.Cases {
-		t.Run(tc.Input, func(t *testing.T) {
-			t.Parallel()
+		var buf bytes.Buffer
 
-			conf := &Config{
-				InputFile:   tc.Input,
-				OutputPaths: []string{tc.Actual},
+		conf := &Config{
+			InputFile:   tc.Input,
+			OutputPaths: nil,
+			output:      &buf,
+		}
+
+		if debug {
+			conf.OutputPaths = append(conf.OutputPaths, tc.Actual)
+		}
+
+		fatal := func(t *testing.T, i int, msg string, err error) {
+			t.Helper()
+			t.Fatalf("At: %d, %s, %v", i, msg, err)
+		}
+
+		if _, err := os.Stat(tc.ActualDir); os.IsNotExist(err) {
+			if err := os.MkdirAll(tc.ActualDir, 0755); err != nil {
+				fatal(t, i, "create actual dir", err)
 			}
+		}
 
-			fatal := func(t *testing.T, i int, msg string, err error) {
-				t.Helper()
-				t.Fatalf("At: %d, %s, %v", i, msg, err)
-			}
+		if err := Main(conf); err != nil {
+			fatal(t, i, "call Main", err)
+		}
 
-			if _, err := os.Stat(tc.ActualDir); os.IsNotExist(err) {
-				if err := os.MkdirAll(tc.ActualDir, 0755); err != nil {
-					fatal(t, i, "create actual dir", err)
-				}
-			}
+		expected, err := ioutil.ReadFile(tc.Expected)
+		if err != nil {
+			fatal(t, i, "read expected file", err)
+		}
 
-			if err := Main(conf); err != nil {
-				fatal(t, i, "call Main", err)
-			}
+		actual := buf.Bytes()
 
-			expected, err := ioutil.ReadFile(tc.Expected)
-			if err != nil {
-				fatal(t, i, "read expected file", err)
-			}
-
-			actual, err := ioutil.ReadFile(tc.Actual)
-			if err != nil {
-				fatal(t, i, "read actual file", err)
-			}
-
-			if !bytes.Equal(expected, actual) {
-				diff := dmp.New().DiffMain(string(expected), string(actual), true)
-				t.Errorf(`
+		if !bytes.Equal(expected, actual) {
+			diff := dmp.New().DiffMain(string(expected), string(actual), true)
+			t.Errorf(`
 ===================================================================
 At: %d
 Diff:
 %s
 ===================================================================
 `, i, colorDiff(diff))
-			}
-		})
+		}
 	}
 }
 
