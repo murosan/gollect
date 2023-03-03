@@ -21,15 +21,10 @@ func AnalyzeForeach(program *Program) {
 	iset, pset := program.ImportSet(), program.PackageSet()
 
 	for _, pkg := range pset {
-		wg.Add(1)
-		go func(pkg *Package) {
-			ExecCheck(fset, pkg)
-			pkg.InitObjects()
-			NewDeclFinder(dset, iset, pkg).Files(pkg.files)
-			wg.Done()
-		}(pkg)
+		ExecCheck(fset, pkg)
+		pkg.InitObjects()
+		NewDeclFinder(dset, iset, pkg).Files(pkg.files)
 	}
-	wg.Wait()
 
 	dsetValues := dset.Values()
 	for _, d := range dsetValues {
