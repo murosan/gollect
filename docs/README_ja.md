@@ -19,7 +19,6 @@ Go のバージョンを変更したときは、再インストールしてく�
 再インストールする方法:
 
 ```sh
-rm -i $GOPATH/bin/gollect
 go get -u github.com/murosan/gollect/cmd/gollect
 ```
 

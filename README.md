@@ -23,7 +23,6 @@ Please reinstall when you upgrade (or downgrade) GoLang.
 To reinstall, do the following:
 
 ```sh
-rm -i $GOPATH/bin/gollect
 go get -u github.com/murosan/gollect/cmd/gollect
 ```
 
