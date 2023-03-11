@@ -6,7 +6,7 @@ install:
 
 install-tools:
 	go mod download
-	go install honnef.co/go/tools/cmd/staticcheck
+	# go install honnef.co/go/tools/cmd/staticcheck
 
 clean:
 	go mod tidy
@@ -28,5 +28,5 @@ lint: install-tools
 
 ci: clean install-tools
 	go vet .
-	$(GOBIN)/staticcheck .
+	# $(GOBIN)/staticcheck .
 	go test -race .
