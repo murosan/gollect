@@ -6,7 +6,6 @@ package gollect
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -50,7 +49,7 @@ func TestGollect(t *testing.T) {
 			fatal(t, i, "call Main", err)
 		}
 
-		expected, err := ioutil.ReadFile(tc.Expected)
+		expected, err := os.ReadFile(tc.Expected)
 		if err != nil {
 			fatal(t, i, "read expected file", err)
 		}

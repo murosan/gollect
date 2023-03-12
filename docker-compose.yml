@@ -1,0 +1,12 @@
+version: '3.7'
+
+services:
+  app:
+    container_name: gollect
+    build:
+      context: .
+      dockerfile: Dockerfile
+    tty: true
+    volumes:
+      - .:/go/src/gollect
+    working_dir: /go/src/gollect

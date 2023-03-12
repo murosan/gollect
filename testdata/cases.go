@@ -5,7 +5,6 @@
 package testdata
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -28,7 +27,7 @@ var (
 	actual   = join("actual", "main.go")
 
 	numOfCases = func() int {
-		files, err := ioutil.ReadDir(base)
+		files, err := os.ReadDir(base)
 		if err != nil {
 			panic(err)
 		}

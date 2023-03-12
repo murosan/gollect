@@ -7,7 +7,7 @@ package gollect
 import (
 	"errors"
 	"io"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/atotto/clipboard"
@@ -33,7 +33,7 @@ func LoadConfig(path string) *Config {
 		return &c
 	}
 
-	bytes, err := ioutil.ReadFile(path)
+	bytes, err := os.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
