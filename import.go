@@ -9,7 +9,6 @@ import (
 	"go/ast"
 	"go/token"
 	"strconv"
-	"sync"
 )
 
 type (
@@ -20,10 +19,7 @@ type (
 	}
 
 	// ImportSet is a set of Import.
-	ImportSet struct {
-		mux  sync.RWMutex
-		iset []*Import
-	}
+	ImportSet struct{ iset []*Import }
 )
 
 // NewImport returns new Import.
@@ -69,16 +65,10 @@ func NewImportSet() *ImportSet {
 }
 
 // Len returns length of map.
-func (s *ImportSet) Len() int {
-	s.mux.RLock()
-	defer s.mux.RUnlock()
-	return len(s.iset)
-}
+func (s *ImportSet) Len() int { return len(s.iset) }
 
 // Values apply block to each element.
 func (s *ImportSet) Values() []*Import {
-	s.mux.RLock()
-	defer s.mux.RUnlock()
 	a := make([]*Import, len(s.iset))
 	copy(a, s.iset)
 	return a
@@ -87,9 +77,6 @@ func (s *ImportSet) Values() []*Import {
 // AddAndGet gets an Import form set if exists, otherwise
 // creates new one and returns it.
 func (s *ImportSet) AddAndGet(i *Import) *Import {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-
 	for _, v := range s.iset {
 		if v.alias == i.alias &&
 			v.name == i.name &&
@@ -111,9 +98,6 @@ func (s *ImportSet) GetOrCreate(alias, name, path string) *Import {
 // ToDecl creates ast.GenDecl and returns it.
 func (s *ImportSet) ToDecl() *ast.GenDecl {
 	d := &ast.GenDecl{Tok: token.IMPORT}
-
-	s.mux.RLock()
-	defer s.mux.RUnlock()
 
 	for _, i := range s.iset {
 		if i.IsUsed() && i.IsBuiltin() {

@@ -7,13 +7,10 @@ package gollect
 import (
 	"go/ast"
 	"go/types"
-	"sync"
 )
 
 // Package represents analyzing information.
 type Package struct {
-	mux sync.Mutex
-
 	path    string                 // package path
 	files   []*ast.File            // container of ast files
 	objects map[string]*ast.Object // map of package-level objects
@@ -58,9 +55,7 @@ func (pkg *Package) GetObject(key string) (*ast.Object, bool) {
 
 // PushAstFile push ast.File to files.
 func (pkg *Package) PushAstFile(f *ast.File) {
-	pkg.mux.Lock()
 	pkg.files = append(pkg.files, f)
-	pkg.mux.Unlock()
 }
 
 // UsesInfo gets types.Object from types.Info and returns it.

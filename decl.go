@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"go/ast"
 	"strings"
-	"sync"
 )
 
 // DeclType represents declaration type.
@@ -282,7 +281,6 @@ func declToString(decl Decl) string {
 
 // DeclSet is a set of Decl
 type DeclSet struct {
-	mux  sync.RWMutex
 	dset map[string]Decl
 }
 
@@ -293,8 +291,6 @@ func NewDeclSet() *DeclSet {
 
 // Get gets Decl from set.
 func (s *DeclSet) Get(pkg *Package, key ...string) (Decl, bool) {
-	s.mux.RLock()
-	defer s.mux.RUnlock()
 	d, ok := s.dset[makeID(pkg, key...)]
 	return d, ok
 }
@@ -302,9 +298,6 @@ func (s *DeclSet) Get(pkg *Package, key ...string) (Decl, bool) {
 // GetOrCreate gets Decl from set if exists, otherwise create new one and add to set
 // then returns it.
 func (s *DeclSet) GetOrCreate(dtype DeclType, pkg *Package, key ...string) Decl {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-
 	if d, ok := s.dset[makeID(pkg, key...)]; ok {
 		return d
 	}
@@ -315,16 +308,10 @@ func (s *DeclSet) GetOrCreate(dtype DeclType, pkg *Package, key ...string) Decl 
 }
 
 // Add adds Decl to set.
-func (s *DeclSet) Add(d Decl) {
-	s.mux.Lock()
-	s.dset[d.ID()] = d
-	s.mux.Unlock()
-}
+func (s *DeclSet) Add(d Decl) { s.dset[d.ID()] = d }
 
 // Values creates a slice of values of set and returns it.
 func (s *DeclSet) Values() []Decl {
-	s.mux.RLock()
-	defer s.mux.RUnlock()
 	i := 0
 	a := make([]Decl, len(s.dset))
 	for _, v := range s.dset {
