@@ -11,12 +11,10 @@ import (
 	"go/token"
 	"go/types"
 	"strings"
-	"sync"
 )
 
 // AnalyzeForeach executes analyzing dependency for each packages.
 func AnalyzeForeach(program *Program) {
-	var wg sync.WaitGroup
 	fset, dset := program.FileSet(), program.DeclSet()
 	iset, pset := program.ImportSet(), program.PackageSet()
 
@@ -28,22 +26,12 @@ func AnalyzeForeach(program *Program) {
 
 	dsetValues := dset.Values()
 	for _, d := range dsetValues {
-		wg.Add(1)
-		go func(d Decl) {
-			NewDependencyResolver(dset, iset, pset).Check(d)
-			wg.Done()
-		}(d)
+		NewDependencyResolver(dset, iset, pset).Check(d)
 	}
-	wg.Wait()
 
 	for _, d := range dsetValues {
-		wg.Add(1)
-		go func(d Decl) {
-			NewDependencyResolver(dset, iset, pset).CheckEmbedded(d)
-			wg.Done()
-		}(d)
+		NewDependencyResolver(dset, iset, pset).CheckEmbedded(d)
 	}
-	wg.Wait()
 }
 
 // ExecCheck executes types.Config.Check
@@ -75,20 +63,11 @@ func NewDeclFinder(dset *DeclSet, iset *ImportSet, pkg *Package) *DeclFinder {
 
 // Files finds package-level declarations foreach file.decls concurrently.
 func (f *DeclFinder) Files(files []*ast.File) {
-	var wg sync.WaitGroup
-
 	for _, file := range files {
 		for _, decl := range file.Decls {
-			wg.Add(1)
-
-			go func(decl ast.Decl) {
-				f.Decl(decl)
-				wg.Done()
-			}(decl)
+			f.Decl(decl)
 		}
 	}
-
-	wg.Wait()
 }
 
 // Decl finds package-level declarations from ast.Decl.
