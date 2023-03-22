@@ -105,16 +105,18 @@ func (f *DeclFinder) Decl(decl ast.Decl) {
 // GenDecl finds package-level declarations from ast.GenDecl.
 func (f *DeclFinder) GenDecl(decl *ast.GenDecl) {
 	switch decl.Tok {
-	case token.VAR, token.CONST:
-		f.varSpecs(decl)
+	case token.CONST:
+		f.varSpecs(decl, true)
+	case token.VAR:
+		f.varSpecs(decl, false)
 	case token.TYPE:
 		f.typeSpecs(decl)
 	}
 }
 
-func (f *DeclFinder) varSpecs(decl *ast.GenDecl) {
+func (f *DeclFinder) varSpecs(decl *ast.GenDecl, isConst bool) {
 	var prev Decl
-	iota := f.hasIota(decl)
+	iota := isConst && f.hasIota(decl)
 
 	for _, spec := range decl.Specs {
 		spec, ok := spec.(*ast.ValueSpec)
@@ -130,7 +132,7 @@ func (f *DeclFinder) varSpecs(decl *ast.GenDecl) {
 				if iota {
 					d.Uses(prev)
 					prev.Uses(d)
-				} else if len(spec.Values) == 0 {
+				} else if isConst && len(spec.Values) == 0 {
 					d.Uses(prev)
 				}
 			}

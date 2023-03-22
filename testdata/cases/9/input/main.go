@@ -42,6 +42,11 @@ const (
 	n
 )
 
+var (
+	v1 = 100
+	v2, v3 int
+)
+
 func main() {
 	_ = two
 	_ = numB
@@ -50,4 +55,6 @@ func main() {
 	_ = g
 	_ = l
 	_ = m
+	_ = v2
+	_ = v3
 }
