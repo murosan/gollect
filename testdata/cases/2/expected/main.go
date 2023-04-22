@@ -7,6 +7,7 @@ const ConstA = 100
 const (
 	constB int = 300
 
+	_      = 900
 	constD = 1000
 )
 
@@ -18,7 +19,8 @@ var (
 
 type A struct{}
 
-var one A
+var one,
+	_ A
 
 func Nums() []int {
 	return []int{10, 20, 30}

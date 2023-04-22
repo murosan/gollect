@@ -12,7 +12,7 @@ import (
 type Program struct {
 	fset *token.FileSet
 	iset *ImportSet
-	dset *DeclSet
+	dset DeclSet
 	pset PackageSet
 }
 
@@ -33,7 +33,7 @@ func (p *Program) FileSet() *token.FileSet { return p.fset }
 func (p *Program) ImportSet() *ImportSet { return p.iset }
 
 // DeclSet returns declaration set.
-func (p *Program) DeclSet() *DeclSet { return p.dset }
+func (p *Program) DeclSet() DeclSet { return p.dset }
 
 // PackageSet returns packages.
 func (p *Program) PackageSet() PackageSet { return p.pset }

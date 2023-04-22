@@ -42,6 +42,12 @@ const (
 	n
 )
 
+const (
+	_ A = iota
+	o
+	p
+)
+
 var (
 	v1 = 100
 	v2, v3 int

@@ -47,13 +47,13 @@ func ExecCheck(fset *token.FileSet, pkg *Package) {
 
 // DeclFinder find package-level declarations and set it to DeclSet.
 type DeclFinder struct {
-	dset *DeclSet
+	dset DeclSet
 	iset *ImportSet
 	pkg  *Package
 }
 
 // NewDeclFinder returns new DeclFinder
-func NewDeclFinder(dset *DeclSet, iset *ImportSet, pkg *Package) *DeclFinder {
+func NewDeclFinder(dset DeclSet, iset *ImportSet, pkg *Package) *DeclFinder {
 	return &DeclFinder{
 		dset: dset,
 		iset: iset,
@@ -227,13 +227,13 @@ func receiverID(expr ast.Expr) *ast.Ident {
 
 // DependencyResolver provides a method for checking dependency.
 type DependencyResolver struct {
-	dset *DeclSet
+	dset DeclSet
 	iset *ImportSet
 	pset PackageSet
 }
 
 // NewDependencyResolver returns new DependencyResolver
-func NewDependencyResolver(dset *DeclSet, iset *ImportSet, pset PackageSet) *DependencyResolver {
+func NewDependencyResolver(dset DeclSet, iset *ImportSet, pset PackageSet) *DependencyResolver {
 	return &DependencyResolver{
 		dset: dset,
 		iset: iset,

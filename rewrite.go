@@ -15,12 +15,12 @@ import (
 
 // Filter provides a method for filtering slice of ast.Decl.
 type Filter struct {
-	dset *DeclSet
+	dset DeclSet
 	pkg  *Package
 }
 
 // NewFilter returns new Filter.
-func NewFilter(dset *DeclSet, pkg *Package) *Filter {
+func NewFilter(dset DeclSet, pkg *Package) *Filter {
 	return &Filter{
 		dset: dset,
 		pkg:  pkg,
@@ -102,10 +102,6 @@ func (f *Filter) valueSpec(spec *ast.ValueSpec) {
 }
 
 func (f *Filter) isUsedFuncDecl(decl *ast.FuncDecl) bool {
-	if decl.Recv == nil && decl.Name.Name == "init" {
-		return true
-	}
-
 	var keys []string
 
 	if decl.Recv != nil {

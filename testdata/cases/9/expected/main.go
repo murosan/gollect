@@ -41,6 +41,12 @@ const (
 	n
 )
 
+const (
+	_ A = iota
+	o
+	p
+)
+
 var v2, v3 int
 
 func main() {

@@ -31,6 +31,9 @@ func Main(config *Config) error {
 	pkg, _ := pset.Get("main")
 	decl, _ := dset.Get(pkg, "main")
 	decl.Use()
+	for _, d := range dset.ListInitOrUnderscore() {
+		d.Use()
+	}
 
 	w := &writer{
 		config:   config,

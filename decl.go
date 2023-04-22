@@ -49,9 +49,13 @@ func makeID(p *Package, s ...string) string {
 func nameForUnderscore(id *ast.Ident) string {
 	name := id.Name
 	if name == "_" {
-		name += fmt.Sprint(int(id.NamePos))
+		name += sep + fmt.Sprint(int(id.NamePos))
 	}
 	return name
+}
+
+func isUnderscore(name string) bool {
+	return strings.HasPrefix(name, "_"+sep)
 }
 
 // NewDecl return new Decl
@@ -75,9 +79,11 @@ type CommonDecl struct {
 	pkg  *Package
 	used bool
 	uses struct {
-		decls   *DeclSet
+		decls   DeclSet
 		imports *ImportSet
 	}
+	isinit,
+	isunderscore bool
 }
 
 // NewCommonDecl returns new CommonDecl.
@@ -89,12 +95,14 @@ func NewCommonDecl(pkg *Package, ids ...string) *CommonDecl {
 		pkg:  pkg,
 		used: false,
 		uses: struct {
-			decls   *DeclSet
+			decls   DeclSet
 			imports *ImportSet
 		}{
 			decls:   NewDeclSet(),
 			imports: NewImportSet(),
 		},
+		isinit:       len(ids) > 0 && ids[0] == "init",
+		isunderscore: len(ids) > 0 && isUnderscore(ids[0]),
 	}
 }
 
@@ -132,6 +140,10 @@ func (d *CommonDecl) Use() {
 		d.Use()
 	}
 }
+
+// IsInitOrUnderScore return true if the Desc is init func or
+// var declared with underscore.
+func (d *CommonDecl) IsInitOrUnderScore() bool { return d.isinit || d.isunderscore }
 
 func (d *CommonDecl) String() string { return declToString(d) }
 
@@ -280,51 +292,62 @@ func declToString(decl Decl) string {
 }
 
 // DeclSet is a set of Decl
-type DeclSet struct {
-	dset map[string]Decl
-}
+type DeclSet map[string]Decl
 
 // NewDeclSet returns new DeclSet
-func NewDeclSet() *DeclSet {
-	return &DeclSet{dset: make(map[string]Decl)}
+func NewDeclSet() DeclSet {
+	return make(map[string]Decl)
 }
 
 // Get gets Decl from set.
-func (s *DeclSet) Get(pkg *Package, key ...string) (Decl, bool) {
-	d, ok := s.dset[makeID(pkg, key...)]
+func (s DeclSet) Get(pkg *Package, key ...string) (Decl, bool) {
+	d, ok := s[makeID(pkg, key...)]
 	return d, ok
 }
 
 // GetOrCreate gets Decl from set if exists, otherwise create new one and add to set
 // then returns it.
-func (s *DeclSet) GetOrCreate(dtype DeclType, pkg *Package, key ...string) Decl {
-	if d, ok := s.dset[makeID(pkg, key...)]; ok {
+func (s DeclSet) GetOrCreate(dtype DeclType, pkg *Package, key ...string) Decl {
+	if d, ok := s[makeID(pkg, key...)]; ok {
 		return d
 	}
 
 	d := NewDecl(dtype, pkg, key...)
-	s.dset[d.ID()] = d
+	s[d.ID()] = d
 	return d
 }
 
 // Add adds Decl to set.
-func (s *DeclSet) Add(d Decl) { s.dset[d.ID()] = d }
+func (s DeclSet) Add(d Decl) { s[d.ID()] = d }
 
 // Values creates a slice of values of set and returns it.
-func (s *DeclSet) Values() []Decl {
+func (s DeclSet) Values() []Decl {
 	i := 0
-	a := make([]Decl, len(s.dset))
-	for _, v := range s.dset {
-		v := v
+	a := make([]Decl, len(s))
+	for _, v := range s {
 		a[i] = v
 		i++
 	}
 	return a
 }
 
-func (s *DeclSet) String() string {
+// ListInitOrUnderscore returns Decl list of init func or
+// vars declared with underscore.
+func (s DeclSet) ListInitOrUnderscore() (a []Decl) {
+	for _, v := range s {
+		switch d := v.(type) {
+		case *CommonDecl:
+			if d.IsInitOrUnderScore() {
+				a = append(a, d)
+			}
+		}
+	}
+	return
+}
+
+func (s DeclSet) String() string {
 	var v []string
-	for _, d := range s.dset {
+	for _, d := range s {
 		v = append(v, fmt.Sprintf(`"%s"`, d.ID()))
 	}
 	return "DeclSet{" + strings.Join(v, ",") + "}"
