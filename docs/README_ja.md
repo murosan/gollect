@@ -10,18 +10,11 @@ Go で競技プログラミングを行うためのツールです。
 ## インストール
 
 ```sh
-go get -u github.com/murosan/gollect/cmd/gollect
+go install github.com/murosan/gollect/cmd/gollect@latest
 ```
 
 実行時に AST をパースしている関係で、インストール時の Go のバージョンに依存しています。  
 Go のバージョンを変更したときは、再インストールしてください。
-
-再インストールする方法:
-
-```sh
-go get -u github.com/murosan/gollect/cmd/gollect
-```
-
 
 ## 使い方
 

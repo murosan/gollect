@@ -190,9 +190,10 @@ func eqImportGenDecl(t *testing.T, a, b *ast.GenDecl) bool {
 		return false
 	}
 
+	//lint:ignore U1000 (staticcheck) tup is used
 	type tup struct{ name, path string }
-	aset := make(map[tup]interface{})
-	bset := make(map[tup]interface{})
+	aset := make(map[tup]struct{})
+	bset := make(map[tup]struct{})
 
 	for i := range a.Specs {
 		aa, ok1 := a.Specs[i].(*ast.ImportSpec)

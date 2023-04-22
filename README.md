@@ -14,17 +14,11 @@ A tool for competitive programming in Go.
 ## Install
 
 ```sh
-go get -u github.com/murosan/gollect/cmd/gollect
+go install github.com/murosan/gollect/cmd/gollect@latest
 ```
 
 It parses AST at runtime, so it depends on the GoLang's version installed.  
 Please reinstall when you upgrade (or downgrade) GoLang.
-
-To reinstall, do the following:
-
-```sh
-go get -u github.com/murosan/gollect/cmd/gollect
-```
 
 ## Usage
 
