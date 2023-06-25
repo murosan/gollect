@@ -218,8 +218,10 @@ func receiverID(expr ast.Expr) *ast.Ident {
 	switch expr := expr.(type) {
 	case *ast.Ident:
 		return expr
-	case *ast.StarExpr:
+	case *ast.IndexExpr:
 		return expr.X.(*ast.Ident)
+	case *ast.StarExpr:
+		return receiverID(expr.X)
 	default:
 		return nil
 	}

@@ -5,6 +5,7 @@
 package gollect
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
@@ -105,16 +106,27 @@ func (f *Filter) isUsedFuncDecl(decl *ast.FuncDecl) bool {
 	var keys []string
 
 	if decl.Recv != nil {
-		switch expr := decl.Recv.List[0].Type.(type) {
-		case *ast.Ident:
-			keys = append(keys, expr.Name)
-		case *ast.StarExpr:
-			keys = append(keys, expr.X.(*ast.Ident).Name)
+		key := f.funcRecvKey(decl.Recv.List[0].Type)
+		if key != "" {
+			keys = append(keys, key)
 		}
 	}
 
 	keys = append(keys, decl.Name.Name)
 	return f.isUsed(keys...)
+}
+
+func (f *Filter) funcRecvKey(expr ast.Expr) string {
+	switch expr := expr.(type) {
+	case *ast.Ident:
+		return expr.Name
+	case *ast.IndexExpr:
+		return expr.X.(*ast.Ident).Name
+	case *ast.StarExpr:
+		return f.funcRecvKey(expr.X)
+	default:
+		panic(fmt.Sprintf("unknown expr type (%T)", expr))
+	}
 }
 
 func (f *Filter) annotation(node *ast.GenDecl) {
