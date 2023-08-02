@@ -69,7 +69,7 @@ func FuncB() {
 		program := NewProgram()
 		paths, _ := filepath.Glob(c.path)
 		ParseAll(program, "main", paths)
-		AnalyzeForeach(program)
+		AnalyzeForeach(program, "main", "main")
 
 		pkg := NewPackage("main")
 		d, _ := program.DeclSet().Get(pkg, "main")

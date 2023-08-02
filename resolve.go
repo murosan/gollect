@@ -14,7 +14,7 @@ import (
 )
 
 // AnalyzeForeach executes analyzing dependency for each packages.
-func AnalyzeForeach(program *Program) {
+func AnalyzeForeach(program *Program, initialPkg, initialObj string) {
 	fset, dset := program.FileSet(), program.DeclSet()
 	iset, pset := program.ImportSet(), program.PackageSet()
 
@@ -24,13 +24,20 @@ func AnalyzeForeach(program *Program) {
 		NewDeclFinder(dset, iset, pkg).Files(pkg.files)
 	}
 
-	dsetValues := dset.Values()
-	for _, d := range dsetValues {
-		NewDependencyResolver(dset, iset, pset).Check(d)
+	pkg, ok := pset.Get(initialPkg)
+	if !ok {
+		panic("No such package: " + initialPkg)
 	}
 
-	for _, d := range dsetValues {
-		NewDependencyResolver(dset, iset, pset).CheckEmbedded(d)
+	initial, ok := dset.Get(pkg, initialObj)
+	if !ok {
+		panic("No such decl:" + initialObj)
+	}
+	resolver := NewDependencyResolver(dset, iset, pset)
+	resolver.CheckEach(initial)
+
+	for _, d := range dset.ListInitOrUnderscore() {
+		resolver.CheckEach(d)
 	}
 }
 
@@ -232,6 +239,8 @@ type DependencyResolver struct {
 	dset DeclSet
 	iset *ImportSet
 	pset PackageSet
+
+	queue []Decl
 }
 
 // NewDependencyResolver returns new DependencyResolver
@@ -240,6 +249,55 @@ func NewDependencyResolver(dset DeclSet, iset *ImportSet, pset PackageSet) *Depe
 		dset: dset,
 		iset: iset,
 		pset: pset,
+	}
+}
+
+func (r *DependencyResolver) use(decl, usedBy Decl) {
+	if decl.IsUsed() {
+		return
+	}
+	decl.Use()
+
+	if decl, ok := decl.(*CommonDecl); ok {
+		decl.GetUses().Each(func(decl Decl) { r.use(decl, nil) })
+	}
+
+	if decl, ok := decl.(*TypeDecl); ok {
+		if decl.ShouldKeepMethods() {
+			decl.EachMethod(func(m *MethodDecl) { r.use(m, nil) })
+		}
+
+		// use lazily for checking embedded methods
+		tpe, ok := usedBy.(*TypeDecl)
+		if ok && tpe != nil {
+			tpe.Uses(decl)
+		}
+	}
+
+	if decl, ok := decl.(*MethodDecl); ok {
+		r.use(decl.Type(), nil) // should check earlier to resolve embedded methods.
+	}
+
+	r.push(decl)
+}
+
+func (r *DependencyResolver) useImport(i *Import) { r.iset.AddAndGet(i).Use() }
+
+func (r *DependencyResolver) push(decl Decl) { r.queue = append(r.queue, decl) }
+
+func (r *DependencyResolver) pop() (decl Decl) {
+	decl = r.queue[0]
+	r.queue = r.queue[1:]
+	return
+}
+
+func (r *DependencyResolver) CheckEach(initial Decl) {
+	r.use(initial, nil)
+
+	for len(r.queue) > 0 {
+		decl := r.pop()
+		r.Check(decl)
+		r.CheckEmbedded(decl)
 	}
 }
 
@@ -270,7 +328,7 @@ func (r *DependencyResolver) Check(decl Decl) {
 
 				d, ok := r.dset.Get(pkg, n.Obj().Name(), node.Sel.Name)
 				if ok {
-					decl.Uses(d)
+					r.use(d, decl)
 				}
 
 				return true
@@ -287,7 +345,7 @@ func (r *DependencyResolver) Check(decl Decl) {
 					}
 
 					i := r.iset.GetOrCreate(alias, name, path)
-					decl.UsesImport(i)
+					r.useImport(i)
 					pkg, ok := r.pset.Get(path)
 
 					if !ok || isBuiltinPackage(path) {
@@ -296,7 +354,7 @@ func (r *DependencyResolver) Check(decl Decl) {
 
 					d, ok := r.dset.Get(pkg, node.Sel.Name)
 					if ok {
-						decl.Uses(d)
+						r.use(d, decl)
 					}
 				}
 			}
@@ -317,7 +375,7 @@ func (r *DependencyResolver) Check(decl Decl) {
 			switch obj := uses.(type) {
 			case *types.Const, *types.Var, *types.Func, *types.TypeName:
 				d, _ := r.dset.Get(decl.Pkg(), obj.Name())
-				decl.Uses(d)
+				r.use(d, decl)
 			}
 		}
 
@@ -333,18 +391,18 @@ func (r *DependencyResolver) CheckEmbedded(decl Decl) {
 		return
 	}
 
-	for _, d := range mdecl.Type().UsesDecls() {
+	// dependency checking of mdecl.Type() should be done before
+	mdecl.Type().GetUses().Each(func(d Decl) {
 		tdecl, ok := d.(*TypeDecl)
 		if !ok {
-			continue
+			return
 		}
 
-		for _, d := range tdecl.Methods() {
-			if mdecl.Name() == d.Name() {
-				mdecl.Uses(d)
-			}
+		m, ok := tdecl.GetMethod(mdecl)
+		if ok {
+			r.use(m, nil)
 		}
-	}
+	})
 }
 
 func named(expr types.Type) *types.Named {

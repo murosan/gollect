@@ -36,7 +36,6 @@ type Decl interface {
 	IsUsed() bool
 	Use()
 	Uses(Decl)
-	UsesImport(*Import)
 	fmt.Stringer
 }
 
@@ -78,10 +77,7 @@ type CommonDecl struct {
 	node ast.Node
 	pkg  *Package
 	used bool
-	uses struct {
-		decls   DeclSet
-		imports *ImportSet
-	}
+	uses DeclSet
 	isinit,
 	isunderscore bool
 }
@@ -90,17 +86,11 @@ type CommonDecl struct {
 // The length of ids must be one, and the value must be its name.
 func NewCommonDecl(pkg *Package, ids ...string) *CommonDecl {
 	return &CommonDecl{
-		id:   makeID(pkg, ids...),
-		node: nil,
-		pkg:  pkg,
-		used: false,
-		uses: struct {
-			decls   DeclSet
-			imports *ImportSet
-		}{
-			decls:   NewDeclSet(),
-			imports: NewImportSet(),
-		},
+		id:           makeID(pkg, ids...),
+		node:         nil,
+		pkg:          pkg,
+		used:         false,
+		uses:         NewDeclSet(),
 		isinit:       len(ids) > 0 && ids[0] == "init",
 		isunderscore: len(ids) > 0 && isUnderscore(ids[0]),
 	}
@@ -122,24 +112,12 @@ func (d *CommonDecl) Pkg() *Package { return d.pkg }
 func (d *CommonDecl) IsUsed() bool { return d.used }
 
 // Uses sets given decl to dependency map.
-func (d *CommonDecl) Uses(decl Decl) { d.uses.decls.Add(decl) }
+func (d *CommonDecl) Uses(decl Decl) { d.uses.Add(decl) }
 
-// UsesImport sets given import to dependency map.
-func (d *CommonDecl) UsesImport(i *Import) { d.uses.imports.AddAndGet(i) }
+func (d *CommonDecl) GetUses() DeclSet { return d.uses }
 
 // Use change this and its dependencies' used field to true.
-func (d *CommonDecl) Use() {
-	if d.IsUsed() {
-		return
-	}
-	d.used = true
-	for _, i := range d.uses.imports.Values() {
-		i.Use()
-	}
-	for _, d := range d.uses.decls.Values() {
-		d.Use()
-	}
-}
+func (d *CommonDecl) Use() { d.used = true }
 
 // IsInitOrUnderScore return true if the Desc is init func or
 // var declared with underscore.
@@ -171,24 +149,6 @@ func NewTypeDecl(pkg *Package, ids ...string) *TypeDecl {
 	}
 }
 
-// Use change this, its dependencies' and its methods' used field to true.
-func (d *TypeDecl) Use() {
-	if d.IsUsed() {
-		return
-	}
-	d.CommonDecl.Use()
-	if d.methods.keep {
-		for _, m := range d.methods.mset {
-			m.Use()
-		}
-	}
-}
-
-// UsesDecls returns list of decls that d uses.
-func (d *TypeDecl) UsesDecls() []Decl {
-	return d.uses.decls.Values()
-}
-
 // Methods returns methods as a slice.
 func (d *TypeDecl) Methods() []*MethodDecl {
 	v := make([]*MethodDecl, len(d.methods.mset))
@@ -200,13 +160,26 @@ func (d *TypeDecl) Methods() []*MethodDecl {
 	return v
 }
 
+func (d *TypeDecl) EachMethod(f func(m *MethodDecl)) {
+	for _, m := range d.methods.mset {
+		f(m)
+	}
+}
+
 // SetMethod sets given method to methods set.
-func (d *TypeDecl) SetMethod(m *MethodDecl) { d.methods.mset[m.ID()] = m }
+func (d *TypeDecl) SetMethod(m *MethodDecl) { d.methods.mset[m.Name()] = m }
+
+func (d *TypeDecl) GetMethod(m *MethodDecl) (*MethodDecl, bool) {
+	decl, ok := d.methods.mset[m.Name()]
+	return decl, ok
+}
 
 // KeepMethod set true its keep method option.
 // When the field is true, all methods will not removed even the method
 // is not used from main.
 func (d *TypeDecl) KeepMethod() { d.methods.keep = true }
+
+func (d *TypeDecl) ShouldKeepMethods() bool { return d.methods.keep }
 
 // MethodDecl represents method declaration.
 type MethodDecl struct {
@@ -263,9 +236,8 @@ func declToString(decl Decl) string {
 	}
 
 	uses := fmt.Sprintf(
-		"{dset:%s,iset:%s}",
-		decl.(*CommonDecl).uses.decls.String(),
-		decl.(*CommonDecl).uses.imports.String(),
+		"{dset:%s}",
+		decl.(*CommonDecl).uses.String(),
 	)
 	s := fmt.Sprintf(
 		`%s{id:"%s",used:%t,uses:%s`,
@@ -329,6 +301,12 @@ func (s DeclSet) Values() []Decl {
 		i++
 	}
 	return a
+}
+
+func (s DeclSet) Each(f func(decl Decl)) {
+	for _, v := range s {
+		f(v)
+	}
 }
 
 // ListInitOrUnderscore returns Decl list of init func or
