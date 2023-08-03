@@ -1,5 +1,9 @@
 package gollect
 
+import (
+	"strings"
+)
+
 // A list of Golang's builtin package paths except internal prefixed packages.
 // Packages differ depending on the environment, but we ignore it
 // because they are not so important in competition programming.
@@ -163,7 +167,18 @@ var builtinPackages = map[string]interface{}{
 	"unsafe":               struct{}{},
 }
 
+// package path prefixes treated as same as buitin packages.
+var thirdPartyPackagePathPrefixes []string
+
+// !! this function populates global variable !!
+func setThirdPartyPackagePathPrefixes(s []string) {
+	thirdPartyPackagePathPrefixes = s
+}
+
 func isBuiltinPackage(path string) bool {
 	_, ok := builtinPackages[path]
+	for i := 0; !ok && i < len(thirdPartyPackagePathPrefixes); i++ {
+		ok = strings.HasPrefix(path, thirdPartyPackagePathPrefixes[i])
+	}
 	return ok
 }

@@ -15,6 +15,8 @@ func Main(config *Config) error {
 		return err
 	}
 
+	setThirdPartyPackagePathPrefixes(config.ThirdPartyPackagePathPrefixes)
+
 	p := NewProgram()
 
 	paths, err := filepath.Glob(config.InputFile)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"golang.org/x/exp/constraints"
 	"io"
 	"os"
 )
@@ -18,6 +19,8 @@ func main() {
 		sum2[int](s),
 		min(a, b),
 		min[integer](a, b),
+		max(a, b),
+		max[integer](a, b),
 		mapVector(s, func(n int) string { return fmt.Sprint(n) }),
 		mapVector[int](s, func(n int) string { return fmt.Sprint(n) }),
 		mapVector[int, string](s, func(n int) string { return fmt.Sprint(n) }),
@@ -56,6 +59,13 @@ func sum2[V number](s []V) (n V) {
 
 func min[V ordering](a, b V) V {
 	if a < b {
+		return a
+	}
+	return b
+}
+
+func max[V constraints.Ordered](a, b V) V {
+	if a > b {
 		return a
 	}
 	return b

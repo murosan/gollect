@@ -14,8 +14,9 @@ func TestLoadConfig(t *testing.T) {
 	base := filepath.Join(".", "testdata", "config")
 
 	want := &Config{
-		InputFile:   "abc/def/main.go",
-		OutputPaths: []string{"stdout", "clipboard"},
+		InputFile:                     "abc/def/main.go",
+		OutputPaths:                   []string{"stdout", "clipboard"},
+		ThirdPartyPackagePathPrefixes: DefaultConfig().ThirdPartyPackagePathPrefixes,
 	}
 	actual := LoadConfig(filepath.Join(base, "valid.yml"))
 
@@ -26,6 +27,69 @@ func TestLoadConfig(t *testing.T) {
 	shouldPanic(t, func() {
 		LoadConfig(filepath.Join(base, "invalid.yml"))
 	}, "should fail")
+}
+
+func TestUnmarshalConfig(t *testing.T) {
+	cases := []struct {
+		in   string
+		want *Config
+	}{
+		{
+			in:   ``,
+			want: DefaultConfig(),
+		},
+		{
+			in: `inputFile: main.go
+outputPaths:
+  - tmp.go
+thirdPartyPackagePathPrefixes:
+  - golang.org/x/exp
+`,
+			want: &Config{
+				InputFile:                     "main.go",
+				OutputPaths:                   []string{"tmp.go"},
+				ThirdPartyPackagePathPrefixes: []string{"golang.org/x/exp"},
+			},
+		},
+		{
+			in: `inputFile: main.go
+outputPaths: ["tmp.go"]
+thirdPartyPackagePathPrefixes: [golang.org/x/exp]
+`,
+			want: &Config{
+				InputFile:                     "main.go",
+				OutputPaths:                   []string{"tmp.go"},
+				ThirdPartyPackagePathPrefixes: []string{"golang.org/x/exp"},
+			},
+		},
+		{
+			in: `inputFile: main.go
+outputPaths: ["tmp.go"]
+thirdPartyPackagePathPrefixes: []
+`,
+			want: &Config{
+				InputFile:                     "main.go",
+				OutputPaths:                   []string{"tmp.go"},
+				ThirdPartyPackagePathPrefixes: []string{},
+			},
+		},
+
+		{
+			in: `inputFile: tmp/main.go`,
+			want: &Config{
+				InputFile:                     "tmp/main.go",
+				OutputPaths:                   DefaultConfig().OutputPaths,
+				ThirdPartyPackagePathPrefixes: DefaultConfig().ThirdPartyPackagePathPrefixes,
+			},
+		},
+	}
+
+	for i, c := range cases {
+		config := UnmarshalConfig([]byte(c.in))
+		if !reflect.DeepEqual(config, c.want) {
+			t.Errorf("at:%d\n[want]\n%v\n[actual]\n%v", i, c.want, config)
+		}
+	}
 }
 
 func TestConfig_Validate(t *testing.T) {

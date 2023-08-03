@@ -23,14 +23,29 @@ type Config struct {
 	// filepath, 'stdout' or 'clipboard' are available
 	OutputPaths []string `yaml:"outputPaths"`
 
+	// package path prefixes treat as same as builtin packages.
+	ThirdPartyPackagePathPrefixes []string `yaml:"thirdPartyPackagePathPrefixes"`
+
 	output io.Writer // used by test
+}
+
+func DefaultConfig() *Config {
+	return &Config{
+		InputFile:   "main.go",
+		OutputPaths: []string{"stdout"},
+		ThirdPartyPackagePathPrefixes: []string{
+			"golang.org/x/exp",
+			"github.com/emirpasic/gods",
+			"github.com/liyue201/gostl",
+			"gonum.org/v1/gonum",
+		},
+	}
 }
 
 // LoadConfig loads config from yaml file.
 func LoadConfig(path string) *Config {
-	var c Config
 	if path == "" {
-		return &c
+		return DefaultConfig()
 	}
 
 	bytes, err := os.ReadFile(path)
@@ -38,10 +53,14 @@ func LoadConfig(path string) *Config {
 		panic(err)
 	}
 
-	if err := yaml.Unmarshal(bytes, &c); err != nil {
+	return UnmarshalConfig(bytes)
+}
+
+func UnmarshalConfig(b []byte) *Config {
+	c := *DefaultConfig()
+	if err := yaml.Unmarshal(b, &c); err != nil {
 		panic(err)
 	}
-
 	return &c
 }
 

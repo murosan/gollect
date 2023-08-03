@@ -9,6 +9,8 @@ import (
 	"go/token"
 	"reflect"
 	"testing"
+
+	"golang.org/x/exp/maps"
 )
 
 func TestImport_ToSpec(t *testing.T) {
@@ -215,5 +217,5 @@ func eqImportGenDecl(t *testing.T, a, b *ast.GenDecl) bool {
 		bset[tup{name: bname, path: bb.Path.Value}] = struct{}{}
 	}
 
-	return reflect.DeepEqual(aset, bset)
+	return maps.Equal(aset, bset)
 }
