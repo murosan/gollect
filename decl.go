@@ -36,6 +36,7 @@ type Decl interface {
 	IsUsed() bool
 	Use()
 	Uses(Decl)
+	GetUses() DeclSet
 	fmt.Stringer
 }
 
@@ -174,6 +175,11 @@ func (d *TypeDecl) GetMethod(m *MethodDecl) (*MethodDecl, bool) {
 	return decl, ok
 }
 
+func (d *TypeDecl) GetMethodByName(name string) (*MethodDecl, bool) {
+	decl, ok := d.methods.mset[name]
+	return decl, ok
+}
+
 // KeepMethod set true its keep method option.
 // When the field is true, all methods will not removed even the method
 // is not used from main.
@@ -215,15 +221,6 @@ func (d *MethodDecl) IsEmbedded() bool { return d.embedded }
 // SetEmbedded change its embedded field to true.
 func (d *MethodDecl) SetEmbedded(b bool) { d.embedded = b }
 
-// Use change this, its dependencies' and its methods' used field to true.
-func (d *MethodDecl) Use() {
-	if d.IsUsed() {
-		return
-	}
-	d.CommonDecl.Use()
-	d.Type().Use()
-}
-
 func declToString(decl Decl) string {
 	var tpe string
 	switch decl.(type) {
@@ -237,7 +234,7 @@ func declToString(decl Decl) string {
 
 	uses := fmt.Sprintf(
 		"{dset:%s}",
-		decl.(*CommonDecl).uses.String(),
+		decl.GetUses().String(),
 	)
 	s := fmt.Sprintf(
 		`%s{id:"%s",used:%t,uses:%s`,

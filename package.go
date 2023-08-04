@@ -76,6 +76,10 @@ func (pkg *Package) DefInfo(i *ast.Ident) (types.Object, bool) {
 	return def, ok
 }
 
+func (pkg *Package) ObjectOf(i *ast.Ident) types.Object {
+	return pkg.info.ObjectOf(i)
+}
+
 // PackageSet is a map of Package.
 type PackageSet map[string]*Package
 

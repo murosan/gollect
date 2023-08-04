@@ -201,6 +201,42 @@ func (f *DeclFinder) typeSpecs(decl *ast.GenDecl) {
 				tdecl.SetMethod(mdecl)
 			}
 		}
+
+		switch tpe := spec.Type.(type) {
+		case *ast.StructType:
+			for _, field := range tpe.Fields.List {
+				if id := fieldTypeID(field.Type); id != nil {
+					if it, ok := f.pkg.ObjectOf(id).Type().Underlying().(*types.Interface); ok {
+						// use each interface methods.
+						// when struct type has an interface type in its field list,
+						// the interface methods should be left.
+						// example:
+						//   type S struct { sort.Interface }
+						// when the case of above example,
+						// method `Len`, `Less` ans `Swap` will be left.
+						for i := 0; i < it.NumMethods(); i++ {
+							m, ok := tdecl.GetMethodByName(it.Method(i).Name())
+							if ok {
+								tdecl.Uses(m)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+func fieldTypeID(expr ast.Expr) *ast.Ident {
+	switch expr := expr.(type) {
+	case *ast.Ident:
+		return expr
+	case *ast.SelectorExpr:
+		return expr.Sel
+	case *ast.IndexExpr:
+		return expr.X.(*ast.Ident)
+	default:
+		return nil
 	}
 }
 
@@ -258,11 +294,15 @@ func (r *DependencyResolver) use(decl, usedBy Decl) {
 	}
 	decl.Use()
 
-	if decl, ok := decl.(*CommonDecl); ok {
-		decl.GetUses().Each(func(decl Decl) { r.use(decl, nil) })
-	}
+	switch decl := decl.(type) {
+	case *MethodDecl:
+		r.use(decl.Type(), nil) // should check earlier to resolve embedded methods.
+		decl.GetUses().Each(func(d Decl) { r.use(d, decl) })
+		r.push(decl)
 
-	if decl, ok := decl.(*TypeDecl); ok {
+	case *TypeDecl:
+		r.push(decl) // should check type earlier to resolve embedded methods.
+		decl.GetUses().Each(func(d Decl) { r.use(d, decl) })
 		if decl.ShouldKeepMethods() {
 			decl.EachMethod(func(m *MethodDecl) { r.use(m, nil) })
 		}
@@ -272,13 +312,11 @@ func (r *DependencyResolver) use(decl, usedBy Decl) {
 		if ok && tpe != nil {
 			tpe.Uses(decl)
 		}
-	}
 
-	if decl, ok := decl.(*MethodDecl); ok {
-		r.use(decl.Type(), nil) // should check earlier to resolve embedded methods.
+	default:
+		decl.GetUses().Each(func(d Decl) { r.use(d, decl) })
+		r.push(decl)
 	}
-
-	r.push(decl)
 }
 
 func (r *DependencyResolver) useImport(i *Import) { r.iset.AddAndGet(i).Use() }
