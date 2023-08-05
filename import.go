@@ -18,8 +18,18 @@ type (
 		used              bool
 	}
 
+	// DotImport struct {
+	// 	pkg  *types.Package
+	// 	used bool
+	// }
+
 	// ImportSet is a set of Import.
-	ImportSet struct{ iset []*Import }
+	ImportSet struct {
+		set map[isetKey]*Import
+		// dots map[string]*DotImport
+	}
+
+	isetKey struct{ alias, name, path string }
 )
 
 // NewImport returns new Import.
@@ -45,11 +55,12 @@ func (i *Import) ToSpec() *ast.ImportSpec {
 // Use changes used state to true.
 func (i *Import) Use() { i.used = true }
 
-// IsUsed returns used state.
-func (i *Import) IsUsed() bool { return i.used }
-
 // IsBuiltin returns if the import's path is Go language's builtin or not.
 func (i *Import) IsBuiltin() bool { return isBuiltinPackage(i.path) }
+
+func (i *Import) key() isetKey {
+	return isetKey{alias: i.alias, name: i.name, path: i.path}
+}
 
 func (i *Import) String() string {
 	return fmt.Sprintf("{alias: %s, name: %s, path: %s}",
@@ -59,33 +70,43 @@ func (i *Import) String() string {
 	)
 }
 
+// func NewDotImport(pkg *types.Package) *DotImport {
+// 	return &DotImport{pkg: pkg}
+// }
+// func (i *DotImport) Use()            { i.used = true }
+// func (i *DotImport) IsBuiltin() bool { return isBuiltinPackage(i.pkg.Path()) }
+// func (i *DotImport) ToSpec() *ast.ImportSpec {
+// 	return &ast.ImportSpec{
+// 		Name: ast.NewIdent("."),
+// 		Path: &ast.BasicLit{Value: strconv.Quote(i.pkg.Path())},
+// 	}
+// }
+// func (i *DotImport) String() string {
+// 	return fmt.Sprintf("{alias: %s, name: %s, path: %s}",
+// 		strconv.Quote("."),
+// 		strconv.Quote(i.pkg.Name()),
+// 		strconv.Quote(i.pkg.Path()),
+// 	)
+// }
+
 // NewImportSet returns new ImportSet.
 func NewImportSet() *ImportSet {
-	return &ImportSet{iset: make([]*Import, 0)}
-}
-
-// Len returns length of map.
-func (s *ImportSet) Len() int { return len(s.iset) }
-
-// Values apply block to each element.
-func (s *ImportSet) Values() []*Import {
-	a := make([]*Import, len(s.iset))
-	copy(a, s.iset)
-	return a
+	return &ImportSet{
+		set: make(map[isetKey]*Import),
+		// dots: make(map[string]*DotImport),
+	}
 }
 
 // AddAndGet gets an Import form set if exists, otherwise
 // creates new one and returns it.
 func (s *ImportSet) AddAndGet(i *Import) *Import {
-	for _, v := range s.iset {
-		if v.alias == i.alias &&
-			v.name == i.name &&
-			v.path == i.path {
-			return v
-		}
+	key := i.key()
+	v, ok := s.set[key]
+	if ok {
+		return v
 	}
 
-	s.iset = append(s.iset, i)
+	s.set[key] = i
 	return i
 }
 
@@ -95,15 +116,35 @@ func (s *ImportSet) GetOrCreate(alias, name, path string) *Import {
 	return s.AddAndGet(NewImport(alias, name, path))
 }
 
+// func (s *ImportSet) AddDotImport(pkg *types.Package) {
+// 	i := NewDotImport(pkg)
+// 	if _, ok := s.dots[i.pkg.Path()]; !ok {
+// 		s.dots[i.pkg.Path()] = i
+// 	}
+// }
+//
+// func (s *ImportSet) EachDotImports(f func(i *DotImport) bool) {
+// 	for _, i := range s.dots {
+// 		if !f(i) {
+// 			break
+// 		}
+// 	}
+// }
+
 // ToDecl creates ast.GenDecl and returns it.
 func (s *ImportSet) ToDecl() *ast.GenDecl {
 	d := &ast.GenDecl{Tok: token.IMPORT}
 
-	for _, i := range s.iset {
-		if i.IsUsed() && i.IsBuiltin() {
+	for _, i := range s.set {
+		if i.used && i.IsBuiltin() {
 			d.Specs = append(d.Specs, i.ToSpec())
 		}
 	}
+	// for _, i := range s.dots {
+	// 	if i.used && i.IsBuiltin() {
+	// 		d.Specs = append(d.Specs, i.ToSpec())
+	// 	}
+	// }
 
 	if len(d.Specs) > 1 {
 		// if there is one import and Lparen value is 0,
@@ -119,5 +160,12 @@ func (s *ImportSet) ToDecl() *ast.GenDecl {
 }
 
 func (s *ImportSet) String() string {
-	return fmt.Sprint(s.iset)
+	var v []string
+	for _, i := range s.set {
+		v = append(v, i.String())
+	}
+	// for _, i := range s.dots {
+	// 	v = append(v, i.String())
+	// }
+	return fmt.Sprint(v)
 }

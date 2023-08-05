@@ -21,7 +21,7 @@ func AnalyzeForeach(program *Program, initialPkg, initialObj string) {
 	for _, pkg := range pset {
 		ExecCheck(fset, pkg)
 		pkg.InitObjects()
-		NewDeclFinder(dset, iset, pkg).Files(pkg.files)
+		NewDeclFinder(dset, iset, pkg).Files()
 	}
 
 	pkg, ok := pset.Get(initialPkg)
@@ -69,8 +69,8 @@ func NewDeclFinder(dset DeclSet, iset *ImportSet, pkg *Package) *DeclFinder {
 }
 
 // Files finds package-level declarations foreach file.decls concurrently.
-func (f *DeclFinder) Files(files []*ast.File) {
-	for _, file := range files {
+func (f *DeclFinder) Files() {
+	for _, file := range f.pkg.files {
 		for _, decl := range file.Decls {
 			f.Decl(decl)
 		}
@@ -91,6 +91,8 @@ func (f *DeclFinder) Decl(decl ast.Decl) {
 // GenDecl finds package-level declarations from ast.GenDecl.
 func (f *DeclFinder) GenDecl(decl *ast.GenDecl) {
 	switch decl.Tok {
+	case token.IMPORT:
+		// f.importSpecs(decl)
 	case token.CONST:
 		f.varSpecs(decl, true)
 	case token.VAR:
@@ -99,6 +101,16 @@ func (f *DeclFinder) GenDecl(decl *ast.GenDecl) {
 		f.typeSpecs(decl)
 	}
 }
+
+// func (f *DeclFinder) importSpecs(decl *ast.GenDecl) {
+// 	for _, spec := range decl.Specs {
+// 		spec, ok := spec.(*ast.ImportSpec)
+// 		if ok && spec.Name != nil && spec.Name.Name == "." {
+// 			pkg := f.pkg.Info().Defs[spec.Name].(*types.PkgName)
+// 			f.iset.AddDotImport(pkg.Imported())
+// 		}
+// 	}
+// }
 
 func (f *DeclFinder) varSpecs(decl *ast.GenDecl, isConst bool) {
 	var prev Decl
@@ -141,7 +153,7 @@ func (f *DeclFinder) hasIota(decl *ast.GenDecl) (has bool) {
 					return true
 				}
 
-				uses, ok := f.pkg.UsesInfo(id)
+				uses, ok := f.pkg.Info().Uses[id]
 				if !ok || uses.Parent() != types.Universe {
 					return true
 				}
@@ -177,7 +189,7 @@ func (f *DeclFinder) typeSpecs(decl *ast.GenDecl) {
 			}
 		}
 
-		def, ok := f.pkg.DefInfo(id)
+		def, ok := f.pkg.Info().Defs[id]
 		if !ok {
 			continue
 		}
@@ -206,7 +218,7 @@ func (f *DeclFinder) typeSpecs(decl *ast.GenDecl) {
 		case *ast.StructType:
 			for _, field := range tpe.Fields.List {
 				if id := fieldTypeID(field.Type); id != nil {
-					if it, ok := f.pkg.ObjectOf(id).Type().Underlying().(*types.Interface); ok {
+					if it, ok := f.pkg.Info().ObjectOf(id).Type().Underlying().(*types.Interface); ok {
 						// use each interface methods.
 						// when struct type has an interface type in its field list,
 						// the interface methods should be left.
@@ -348,7 +360,7 @@ func (r *DependencyResolver) Check(decl Decl) {
 	ast.Inspect(decl.Node(), func(node ast.Node) bool {
 		switch node := node.(type) {
 		case *ast.SelectorExpr:
-			if sel, ok := decl.Pkg().SelInfo(node); ok {
+			if sel, ok := decl.Pkg().Info().Selections[node]; ok {
 				n := named(sel.Recv())
 				if n == nil {
 					return true
@@ -373,7 +385,7 @@ func (r *DependencyResolver) Check(decl Decl) {
 			}
 
 			if id, ok := node.X.(*ast.Ident); ok && id != nil {
-				uses, _ := decl.Pkg().UsesInfo(id)
+				uses, _ := decl.Pkg().Info().Uses[id]
 				switch uses := uses.(type) {
 				case *types.PkgName:
 					imported := uses.Imported()
@@ -402,12 +414,12 @@ func (r *DependencyResolver) Check(decl Decl) {
 				// break when the object is
 				//   - not a package-level declaration
 				//   - an external package object
-				break
+				return true
 			}
 
-			uses, ok := decl.Pkg().UsesInfo(node)
+			uses, ok := decl.Pkg().Info().Uses[node]
 			if !ok || uses.Pkg() == nil || isBuiltinPackage(uses.Pkg().Path()) {
-				break
+				return true
 			}
 
 			switch obj := uses.(type) {

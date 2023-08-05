@@ -264,9 +264,7 @@ func declToString(decl Decl) string {
 type DeclSet map[string]Decl
 
 // NewDeclSet returns new DeclSet
-func NewDeclSet() DeclSet {
-	return make(map[string]Decl)
-}
+func NewDeclSet() DeclSet { return make(DeclSet) }
 
 // Get gets Decl from set.
 func (s DeclSet) Get(pkg *Package, key ...string) (Decl, bool) {
@@ -288,17 +286,6 @@ func (s DeclSet) GetOrCreate(dtype DeclType, pkg *Package, key ...string) Decl {
 
 // Add adds Decl to set.
 func (s DeclSet) Add(d Decl) { s[d.ID()] = d }
-
-// Values creates a slice of values of set and returns it.
-func (s DeclSet) Values() []Decl {
-	i := 0
-	a := make([]Decl, len(s))
-	for _, v := range s {
-		a[i] = v
-		i++
-	}
-	return a
-}
 
 func (s DeclSet) Each(f func(decl Decl)) {
 	for _, v := range s {

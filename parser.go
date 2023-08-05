@@ -9,6 +9,7 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"strconv"
 
 	"golang.org/x/tools/go/packages"
 )
@@ -81,7 +82,7 @@ func NextPackagePaths(p *Package) (paths []string) {
 	m := make(map[string]interface{})
 	for _, f := range p.files {
 		for _, i := range f.Imports {
-			p := trimQuotes(i.Path.Value)
+			p, _ := strconv.Unquote(i.Path.Value)
 			if _, ok := m[p]; !ok && !isBuiltinPackage(p) {
 				m[p] = struct{}{}
 				paths = append(paths, p)

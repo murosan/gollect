@@ -58,27 +58,7 @@ func (pkg *Package) PushAstFile(f *ast.File) {
 	pkg.files = append(pkg.files, f)
 }
 
-// UsesInfo gets types.Object from types.Info and returns it.
-func (pkg *Package) UsesInfo(i *ast.Ident) (types.Object, bool) {
-	o, ok := pkg.info.Uses[i]
-	return o, ok
-}
-
-// SelInfo gets types.Selection from types.Info and returns it.
-func (pkg *Package) SelInfo(expr *ast.SelectorExpr) (*types.Selection, bool) {
-	s, ok := pkg.info.Selections[expr]
-	return s, ok
-}
-
-// DefInfo gets types.Object from types.Info and returns it.
-func (pkg *Package) DefInfo(i *ast.Ident) (types.Object, bool) {
-	def, ok := pkg.info.Defs[i]
-	return def, ok
-}
-
-func (pkg *Package) ObjectOf(i *ast.Ident) types.Object {
-	return pkg.info.ObjectOf(i)
-}
+func (pkg *Package) Info() *types.Info { return pkg.info }
 
 // PackageSet is a map of Package.
 type PackageSet map[string]*Package

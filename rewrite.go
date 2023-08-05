@@ -152,9 +152,8 @@ func (f *Filter) isUsed(id ...string) bool {
 
 // PackageSelectorExpr removes external package's selectors.
 //
-//   fmt.Println() → fmt.Println() // keep builtin packages
-//   mypkg.SomeFunc() → SomeFunc() // remove package selector
-//
+//	fmt.Println() → fmt.Println() // keep builtin packages
+//	mypkg.SomeFunc() → SomeFunc() // remove package selector
 func (f *Filter) PackageSelectorExpr(node ast.Node) {
 	astutil.Apply(node, func(cr *astutil.Cursor) bool {
 		switch n := cr.Node().(type) {
@@ -167,7 +166,7 @@ func (f *Filter) PackageSelectorExpr(node ast.Node) {
 				break
 			}
 
-			uses, _ := f.pkg.UsesInfo(i)
+			uses, _ := f.pkg.Info().Uses[i]
 			pn, ok := uses.(*types.PkgName)
 			if !ok || isBuiltinPackage(pn.Imported().Path()) {
 				break
