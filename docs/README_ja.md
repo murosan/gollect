@@ -1,6 +1,6 @@
 # gollect
 
-Goで競技プログラミングを行うためのツールです。
+Go で競技プログラミングを行うためのツールです。
 
 `main`関数から使用されているコードのみを抽出し、`gofmt`をかけた上で、1 つのファイルとして出力します。
 
@@ -123,14 +123,18 @@ thirdPartyPackagePathPrefixes:
 
 #### `inputFile`
 
-| key       | type   | description                          | default |
-| --------- | ------ | ------------------------------------ | ------- |
-| inputFile | string | `main`関数があるファイルを指定します | main.go |
+| key       | type   | description                                                                                                              | default |
+| --------- | ------ | ------------------------------------------------------------------------------------------------------------------------ | ------- |
+| inputFile | string | `main`関数があるファイルを指定します。<br>`main`パッケージファイルが複数ある場合、globで全て指定する必要があります。 | main.go |
 
 example:
 
 ```yml
 inputFile: main.go
+```
+
+```yml
+inputFile: ./*.go
 ```
 
 #### `outputPaths`

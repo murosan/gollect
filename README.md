@@ -127,14 +127,18 @@ The dafault values are used if the option is omitted.
 
 #### `inputFile`
 
-| key       | type   | description                         | default |
-| --------- | ------ | ----------------------------------- | ------- |
-| inputFile | string | The filepath `main` function is written | main.go |
+| key       | type   | description                                                                                                                     | default |
+| --------- | ------ | ------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| inputFile | string | The filepath `main` function is written.<br>If there are multiple files of main package, you have to specify all files by glob. | main.go |
 
 example:
 
 ```yml
 inputFile: main.go
+```
+
+```yml
+inputFile: ./*.go
 ```
 
 #### `outputPaths`
@@ -154,8 +158,8 @@ outputPaths:
 
 #### `thirdPartyPackagePathPrefixes`
 
-| key                           | type     | description                                                                                                                               | default                                                                                          |
-| ----------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| key                           | type     | description                                                                                                                                | default                                                                                          |
+| ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
 | thirdPartyPackagePathPrefixes | []string | Package-path prefixes that can be used at judge system.<br>The import statements and package selectors specified here will not be deleted. | golang.org/x/exp<br>github.com/emirpasic/gods<br>github.com/liyue201/gostl<br>gonum.org/v1/gonum |
 
 example:
@@ -258,7 +262,6 @@ func main() {
 }
 ```
 
-
 #### 2. Keep all methods by comment annotation
 
 Write `// gollect: keep methods` in the Struct comment, and all methods will be left.
@@ -304,7 +307,6 @@ func main() {
 
 ### Unsupported Statements
 
-
 #### `cgo`
 
 ```go
@@ -331,4 +333,3 @@ package main
 import _ "github.com/owner/repo/pkg" // cannot use
 func main() {}
 ```
-
