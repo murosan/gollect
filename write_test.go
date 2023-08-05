@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/murosan/gollect/testdata"
+	dmp "github.com/sergi/go-diff/diffmatchpatch"
 )
 
 func TestWrite(t *testing.T) {
@@ -68,7 +69,7 @@ func FuncB() {
 		program := NewProgram()
 		paths, _ := filepath.Glob(c.path)
 		ParseAll(program, "main", paths)
-		AnalyzeForeach(program)
+		AnalyzeForeach(program, "main", "main")
 
 		pkg := NewPackage("main")
 		d, _ := program.DeclSet().Get(pkg, "main")
@@ -81,11 +82,11 @@ func FuncB() {
 		}
 
 		if buf.String() != c.want {
+			diff := dmp.New().DiffMain(c.want, buf.String(), true)
 			t.Errorf(
-				"\n[at] %d\n[want]\n%s\n[actual]\n%s",
+				"\n[at] %d\n[diff]\n%s",
 				i,
-				c.want,
-				buf.String(),
+				colorDiff(diff),
 			)
 		}
 	}

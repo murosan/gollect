@@ -9,6 +9,8 @@ import (
 	"go/token"
 	"reflect"
 	"testing"
+
+	"golang.org/x/exp/maps"
 )
 
 func TestImport_ToSpec(t *testing.T) {
@@ -68,11 +70,11 @@ func TestImport_Use(t *testing.T) {
 
 func TestImport_IsUsed(t *testing.T) {
 	i := NewImport("", "fmt", "fmt")
-	if i.IsUsed() {
+	if i.used {
 		t.Errorf("wrong initial state")
 	}
 	i.Use()
-	if !i.IsUsed() {
+	if !i.used {
 		t.Errorf("fail")
 	}
 }
@@ -96,7 +98,7 @@ func TestImportSet(t *testing.T) {
 	i1 := NewImport("", name, "fmt")
 
 	exists := func(i *Import) bool {
-		for _, v := range set.iset {
+		for _, v := range set.set {
 			if v == i {
 				return true
 			}
@@ -215,5 +217,5 @@ func eqImportGenDecl(t *testing.T, a, b *ast.GenDecl) bool {
 		bset[tup{name: bname, path: bb.Path.Value}] = struct{}{}
 	}
 
-	return reflect.DeepEqual(aset, bset)
+	return maps.Equal(aset, bset)
 }

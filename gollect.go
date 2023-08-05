@@ -15,6 +15,8 @@ func Main(config *Config) error {
 		return err
 	}
 
+	setThirdPartyPackagePathPrefixes(config.ThirdPartyPackagePathPrefixes)
+
 	p := NewProgram()
 
 	paths, err := filepath.Glob(config.InputFile)
@@ -24,16 +26,7 @@ func Main(config *Config) error {
 
 	// parse ast files and check dependencies
 	ParseAll(p, "main", paths)
-	AnalyzeForeach(p)
-
-	// call Use() for all used declarations
-	pset, dset := p.PackageSet(), p.DeclSet()
-	pkg, _ := pset.Get("main")
-	decl, _ := dset.Get(pkg, "main")
-	decl.Use()
-	for _, d := range dset.ListInitOrUnderscore() {
-		d.Use()
-	}
+	AnalyzeForeach(p, "main", "main")
 
 	w := &writer{
 		config:   config,

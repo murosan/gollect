@@ -2,14 +2,11 @@
 
 ![CI](https://github.com/murosan/gollect/workflows/CI/badge.svg?branch=master)
 
-A tool for competitive programming in Go.
-
 [README - 日本語](./docs/README_ja.md)
 
-## Feature
+A tool for competitive programming in Go.
 
-- Extract only what is needed from the code written in multiple packages and output the code that can be submitted.
-- Output formatted code.
+Extract only the codes used from `main` function, apply `gofmt` and output into one file.
 
 ## Install
 
@@ -22,12 +19,21 @@ Please reinstall when you upgrade (or downgrade) GoLang.
 
 ## Usage
 
-Suppose you have implemented the following `Max` function in the `lib` package:
+Suppose you have implemented the following `Min`,`Max` functions in the `lib` package:
 
 ```go
 package lib
 
-func Max(a, b int) int {
+import "golang.org/x/exp/constraints"
+
+func Min[T constraints.Ordered](a, b T) T {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func Max[T constraints.Ordered](a, b T) T {
 	if a > b {
 		return a
 	}
@@ -43,8 +49,7 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/owner-name/repo-name/lib"
+	"github.com/your-name/repo-name/lib"
 )
 
 func main() {
@@ -67,7 +72,10 @@ The code you can submit will be outputted as follow:
 ```go
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"golang.org/x/exp/constraints"
+)
 
 func main() {
 	var a, b int
@@ -77,7 +85,7 @@ func main() {
 	fmt.Println(max)
 }
 
-func Max(a, b int) int {
+func Max[T constraints.Ordered](a, b T) T {
 	if a > b {
 		return a
 	}
@@ -85,83 +93,242 @@ func Max(a, b int) int {
 }
 ```
 
+Import statements of self managed package (`github.com/your-name/repo-name/lib`) and unused `Min` functions are not included.
+
+The package `golang.org/x/exp/constraints` is configured to leave by default.
+The details of settings are described later.
+
 ## Configuration
 
-You can see CLI options by executing `gollect -help`.
+You can write configuration file by YAML syntax.  
+To specify configuration file, run gollect with `-config` option.
 
-#### YAML configuration file
+```sh
+$ gollect -config config.yml
+```
 
-Example:
+### Default values
 
 ```yml
-# Path to main package.
-inputFile: ./main.go
+inputFile: main.go
+outputPaths:
+  - stdout
+thirdPartyPackagePathPrefixes:
+  - golang.org/x/exp
+  - github.com/emirpasic/gods
+  - github.com/liyue201/gostl
+  - gonum.org/v1/gonum
+```
 
-# A list of output.
-# You can specify stdout, clipboard and filepaths.
+### Options
+
+You can override default values by specifying each option.  
+The dafault values are used if the option is omitted.
+
+#### `inputFile`
+
+| key       | type   | description                         | default |
+| --------- | ------ | ----------------------------------- | ------- |
+| inputFile | string | The filepath `main` function is written | main.go |
+
+example:
+
+```yml
+inputFile: main.go
+```
+
+#### `outputPaths`
+
+| key         | type     | description                                                     | default |
+| ----------- | -------- | --------------------------------------------------------------- | ------- |
+| outputPaths | []string | outputs.<br>available values: `stdout`,`clipboard`,`<filepath>` | stdout  |
+
+example:
+
+```yml
 outputPaths:
   - stdout
   - clipboard
-  - ./out/main.go
+  - out/main.go
 ```
 
-To run with YAML configuration file, execute like:
+#### `thirdPartyPackagePathPrefixes`
 
-```sh
-gollect -config ./config.yml
+| key                           | type     | description                                                                                                                               | default                                                                                          |
+| ----------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| thirdPartyPackagePathPrefixes | []string | Package-path prefixes that can be used at judge system.<br>The import statements and package selectors specified here will not be deleted. | golang.org/x/exp<br>github.com/emirpasic/gods<br>github.com/liyue201/gostl<br>gonum.org/v1/gonum |
+
+example:
+
+```yml
+thirdPartyPackagePathPrefixes:
+  - golang.org/x/exp
+  - github.com/emirpasic/gods
 ```
 
-## How it works?
-
-Does the followings roughly:
-
-1. list all package-level declarations.
-2. find out declarations on which each declaration depends.
-3. output all declarations together on which main function in main package depends.
-
-Here's the list of package-level declarations:
-
-- var
-- const
-- type definition
-- function
-- method
-
-Methods are also considered package-level declarations.  
-And, it doesn't matter if it is exported (begin with a upper case character) or not.  
-For example, following is all package-level declarations:
-
-```go
-var a = 100
-var A = 200
-const b = 300
-const B = 400
-type c struct{}
-func (c c) do() {}
-func (c *c) Do() {}
-type C struct{}
-func (C) do() {}
-func (*C) Do() {}
-type d interface{}
-type D interface{}
-func e() {}
-func E() {}
+```yml
+thirdPartyPackagePathPrefixes: []
 ```
 
-Finally, the declaration which is not used from main function will be ignored.  
+## Other Specification
+
+### Struct Methods
+
+Finally, the declaration which is not used from `main` function will be ignored.  
 Also methods are not exception.
 
-But you may want to keep the method. For example, heap.  
-See the example for `IntHeap` on the foillowing page.
+```go
+// input
+package main
 
-https://golang.org/pkg/container/heap/
+import "sort"
 
-`Len`, `Less` and the other methods may not be used directly (or indirectly) from the main function, but final code will not work without them.  
-To keep them, add `// gollect: keep methods` into comments.
-This leaves all `IntHeap`'s methods.
+type S[T ~int | ~string] []T
+
+func (s S[T]) Len() int           { return len(s) }
+func (s S[T]) Less(i, j int) bool { return s[i] < s[j] }
+func (s S[T]) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+
+func main() {
+	var s S[int]
+	sort.Sort(&s)
+}
+```
 
 ```go
-// An IntHeap is a min-heap of ints.
-// gollect: keep methods
-type IntHeap []int
+// output
+// !! compile error !!
+package main
+
+import "sort"
+
+type S[T ~int | ~string] []T
+
+func main() {
+	var s S[int]
+	sort.Sort(&s)
+}
 ```
+
+The `Len`, `Less` and `Swap` functions have been removed as they are not used directly from the `main` function, but the final code will not work without them.  
+There are two ways to leave them.
+
+#### 1. Embed `Interface` in `Struct` field
+
+```go
+// input
+package main
+
+import "sort"
+
+type S[T ~int | ~string] struct {
+	sort.Interface
+	data []T
+}
+
+func (s *S[T]) Len() int           { return len(s.data) }
+func (s *S[T]) Less(i, j int) bool { return s.data[i] < s.data[j] }
+func (s *S[T]) Swap(i, j int)      { s.data[i], s.data[j] = s.data[j], s.data[i] }
+func (*S[T]) Unused()              {} // will be removed
+
+func main() {
+	var s S[int]
+	sort.Sort(&s)
+}
+```
+
+```go
+// output
+package main
+
+import "sort"
+
+type S[T ~int | ~string] struct {
+	sort.Interface
+	data []T
+}
+
+func (s *S[T]) Len() int           { return len(s.data) }
+func (s *S[T]) Less(i, j int) bool { return s.data[i] < s.data[j] }
+func (s *S[T]) Swap(i, j int)      { s.data[i], s.data[j] = s.data[j], s.data[i] }
+
+func main() {
+	var s S[int]
+	sort.Sort(&s)
+}
+```
+
+
+#### 2. Keep all methods by comment annotation
+
+Write `// gollect: keep methods` in the Struct comment, and all methods will be left.
+
+```go
+// input
+package main
+
+import "sort"
+
+// gollect: keep methods
+type S[T ~int | ~string] []T
+
+func (s S[T]) Len() int           { return len(s) }
+func (s S[T]) Less(i, j int) bool { return s[i] < s[j] }
+func (s S[T]) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (S[T]) Unused()              {} // will be left
+
+func main() {
+	var s S[int]
+	sort.Sort(&s)
+}
+```
+
+```go
+// output
+package main
+
+import "sort"
+
+type S[T ~int | ~string] []T
+
+func (s S[T]) Len() int           { return len(s) }
+func (s S[T]) Less(i, j int) bool { return s[i] < s[j] }
+func (s S[T]) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (S[T]) Unused()              {} // will be left
+
+func main() {
+	var s S[int]
+	sort.Sort(&s)
+}
+```
+
+### Unsupported Statements
+
+
+#### `cgo`
+
+```go
+import "C" // cannot use
+```
+
+#### `dot import`
+
+```go
+package main
+import . "fmt" // cannot use
+func main() { Println() }
+```
+
+#### `blank import`
+
+```go
+package pkg
+func init() {}
+```
+
+```go
+package main
+import _ "github.com/owner/repo/pkg" // cannot use
+func main() {}
+```
+

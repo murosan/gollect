@@ -17,7 +17,6 @@ func TestParseAll(t *testing.T) {
 
 	if program.PackageSet() == nil ||
 		program.ImportSet() == nil ||
-		program.ImportSet().Len() != 0 ||
 		len(paths) == 0 ||
 		len(program.PackageSet()) != 0 {
 		t.Fatalf("something is wrong. %v", program)

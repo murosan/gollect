@@ -1,11 +1,8 @@
 # gollect
 
-Go で競技プログラミングを行うためのツールです。
+Goで競技プログラミングを行うためのツールです。
 
-## 特徴
-
-- 複数パッケージに書かれたコードから、必要なものだけを抽出し、提出可能なコードを出力します
-- フォーマット済みのコードを出力します
+`main`関数から使用されているコードのみを抽出し、`gofmt`をかけた上で、1 つのファイルとして出力します。
 
 ## インストール
 
@@ -18,12 +15,21 @@ Go のバージョンを変更したときは、再インストールしてく�
 
 ## 使い方
 
-以下のような `Max` 関数を `lib` パッケージに実装したとします。
+以下のような `Min`,`Max` 関数を `lib` パッケージに実装したとします。
 
 ```go
 package lib
 
-func Max(a, b int) int {
+import "golang.org/x/exp/constraints"
+
+func Min[T constraints.Ordered](a, b T) T {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func Max[T constraints.Ordered](a, b T) T {
 	if a > b {
 		return a
 	}
@@ -39,7 +45,6 @@ package main
 
 import (
 	"fmt"
-
 	"github.com/your-name/repo-name/lib"
 )
 
@@ -63,7 +68,10 @@ $ gollect -in ./main.go
 ```go
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"golang.org/x/exp/constraints"
+)
 
 func main() {
 	var a, b int
@@ -73,7 +81,7 @@ func main() {
 	fmt.Println(max)
 }
 
-func Max(a, b int) int {
+func Max[T constraints.Ordered](a, b T) T {
 	if a > b {
 		return a
 	}
@@ -81,84 +89,239 @@ func Max(a, b int) int {
 }
 ```
 
+自作パッケージ(`github.com/your-name/repo-name/lib`)のインポート文や、使用されていない`Min`関数は出力されません。
+
+`golang.org/x/exp/constraints`パッケージはデフォルトで残すように設定されています。
+設定内容は後述します。
+
 ## 設定
 
-cli オプションは `gollect -help` で表示できます。
+設定ファイルを YAML で書くことができます。  
+設定ファイルを cli で指定するには`-config`オプションで指定します。
 
-#### YAML 設定ファイル
+```sh
+$ gollect -config config.yml
+```
 
-設定例
+### デフォルト設定
 
 ```yml
-# main パッケージのファイルパス
-inputFile: ./main.go
+inputFile: main.go
+outputPaths:
+  - stdout
+thirdPartyPackagePathPrefixes:
+  - golang.org/x/exp
+  - github.com/emirpasic/gods
+  - github.com/liyue201/gostl
+  - gonum.org/v1/gonum
+```
 
-# 出力先のリスト
-# 標準出力、クリップボード、ファイルパスを指定できます。
+### 設定項目
+
+指定すると、デフォルトの設定を上書きできます。  
+オプションが省略された場合、デフォルトの設定が使用されます。
+
+#### `inputFile`
+
+| key       | type   | description                          | default |
+| --------- | ------ | ------------------------------------ | ------- |
+| inputFile | string | `main`関数があるファイルを指定します | main.go |
+
+example:
+
+```yml
+inputFile: main.go
+```
+
+#### `outputPaths`
+
+| key         | type     | description                                                               | default |
+| ----------- | -------- | ------------------------------------------------------------------------- | ------- |
+| outputPaths | []string | 出力先を指定します。<br>設定可能な値: `stdout`,`clipboard`,`ファイルパス` | stdout  |
+
+example:
+
+```yml
 outputPaths:
   - stdout
   - clipboard
-  - ./out/main.go
+  - out/main.go
 ```
 
-YAML の設定ファイルを指定して実行するには以下のようにします。
+#### `thirdPartyPackagePathPrefixes`
 
-```sh
-gollect -config ./config.yml
+| key                           | type     | description                                                                                                                                    | default                                                                                          |
+| ----------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| thirdPartyPackagePathPrefixes | []string | ジャッジシステム上で使用できるパッケージのプレフィックスを指定します。<br>ここで指定されたパッケージはインポート文などが削除されずに残ります。 | golang.org/x/exp<br>github.com/emirpasic/gods<br>github.com/liyue201/gostl<br>gonum.org/v1/gonum |
+
+example:
+
+```yml
+thirdPartyPackagePathPrefixes:
+  - golang.org/x/exp
+  - github.com/emirpasic/gods
 ```
 
-## 何を行っているか
-
-おおまかに以下のことを行います
-
-1. パッケージレベルの宣言をリストアップする
-2. それぞれの宣言が依存している宣言を調べる
-3. main パッケージの main 関数が依存している宣言をすべて一つのファイルにまとめて出力する
-
-パッケージレベルの宣言の一覧は以下です。
-
-- var
-- const
-- type 定義
-- 関数
-- メソッド
-
-メソッドもパッケージレベルの宣言とみなします。  
-また、Exported(大文字で始まる)かどうかは関係ありません。  
-例えば以下はすべてパッケージレベルの宣言です。
-
-```go
-var a = 100
-var A = 200
-const b = 300
-const B = 400
-type c struct{}
-func (c c) do() {}
-func (c *c) Do() {}
-type C struct{}
-func (C) do() {}
-func (*C) Do() {}
-type d interface{}
-type D interface{}
-func e() {}
-func E() {}
+```yml
+thirdPartyPackagePathPrefixes: []
 ```
+
+## その他仕様
+
+### Struct Methods
 
 最終的に main 関数から使用されていない宣言は無視されます。  
 メソッドも例外ではありません。
 
-しかし、メソッドは残したい場合があると思います。
-例えば heap です。  
-以下のページの `IntHeap` の例を見てください。
+```go
+// input
+package main
 
-https://golang.org/pkg/container/heap/
+import "sort"
 
-`Len` や `Less` などのメソッドは main 関数から直接(または間接的に)使用されることはないかもしれませんが、残さなければコードが機能しません。  
-これらを残すには、コメントに `// gollect: keep methods` を追記してください。  
-これで `IntHeap` のメソッドはすべて残されます。
+type S[T ~int | ~string] []T
+
+func (s S[T]) Len() int           { return len(s) }
+func (s S[T]) Less(i, j int) bool { return s[i] < s[j] }
+func (s S[T]) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+
+func main() {
+	var s S[int]
+	sort.Sort(&s)
+}
+```
 
 ```go
-// An IntHeap is a min-heap of ints.
+// output
+// !! compile error !!
+package main
+
+import "sort"
+
+type S[T ~int | ~string] []T
+
+func main() {
+	var s S[int]
+	sort.Sort(&s)
+}
+```
+
+`Len`、`Less`、`Swap` メソッドは `main` 関数から直接呼び出されないため削除されていますが、残さなければコードが機能しません。  
+これらを残すには、2 つの方法があります。
+
+#### 方法 1. Interface を Struct フィールドに埋め込む
+
+```go
+// input
+package main
+
+import "sort"
+
+type S[T ~int | ~string] struct {
+	sort.Interface
+	data []T
+}
+
+func (s *S[T]) Len() int           { return len(s.data) }
+func (s *S[T]) Less(i, j int) bool { return s.data[i] < s.data[j] }
+func (s *S[T]) Swap(i, j int)      { s.data[i], s.data[j] = s.data[j], s.data[i] }
+func (*S[T]) Unused()              {} // will be removed
+
+func main() {
+	var s S[int]
+	sort.Sort(&s)
+}
+```
+
+```go
+// output
+package main
+
+import "sort"
+
+type S[T ~int | ~string] struct {
+	sort.Interface
+	data []T
+}
+
+func (s *S[T]) Len() int           { return len(s.data) }
+func (s *S[T]) Less(i, j int) bool { return s.data[i] < s.data[j] }
+func (s *S[T]) Swap(i, j int)      { s.data[i], s.data[j] = s.data[j], s.data[i] }
+
+func main() {
+	var s S[int]
+	sort.Sort(&s)
+}
+```
+
+#### 方法 2. 全てのメソッドを残す
+
+コメントに `// gollect: keep methods` を書くと、全てのメソッドを残します。
+
+```go
+// input
+package main
+
+import "sort"
+
 // gollect: keep methods
-type IntHeap []int
+type S[T ~int | ~string] []T
+
+func (s S[T]) Len() int           { return len(s) }
+func (s S[T]) Less(i, j int) bool { return s[i] < s[j] }
+func (s S[T]) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (S[T]) Unused()              {} // will be left
+
+func main() {
+	var s S[int]
+	sort.Sort(&s)
+}
+```
+
+```go
+// output
+package main
+
+import "sort"
+
+type S[T ~int | ~string] []T
+
+func (s S[T]) Len() int           { return len(s) }
+func (s S[T]) Less(i, j int) bool { return s[i] < s[j] }
+func (s S[T]) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (S[T]) Unused()              {} // will be left
+
+func main() {
+	var s S[int]
+	sort.Sort(&s)
+}
+```
+
+### サポートされない動作
+
+#### `cgo`
+
+```go
+import "C" // cannot use
+```
+
+#### `dot import`
+
+```go
+package main
+import . "fmt" // cannot use
+func main() { Println() }
+```
+
+#### `blank import`
+
+```go
+package pkg
+func init() {}
+```
+
+```go
+package main
+import _ "github.com/owner/repo/pkg" // cannot use
+func main() {}
 ```

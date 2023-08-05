@@ -25,9 +25,10 @@ func TestGollect(t *testing.T) {
 		var buf bytes.Buffer
 
 		conf := &Config{
-			InputFile:   tc.Input,
-			OutputPaths: nil,
-			output:      &buf,
+			InputFile:                     tc.Input,
+			OutputPaths:                   nil,
+			ThirdPartyPackagePathPrefixes: []string{"golang.org/x/exp"},
+			output:                        &buf,
 		}
 
 		fatal := func(t *testing.T, i int, msg string, err error) {

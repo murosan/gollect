@@ -1,3 +1,3 @@
-FROM golang:1.17-alpine
+FROM golang:1.18-alpine
 RUN apk add --no-cache make
 RUN apk add --no-cache build-base
