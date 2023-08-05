@@ -22,10 +22,9 @@ func main() {
 	flag.Parse()
 
 	if *cnf == "" {
-		config = &gollect.Config{
-			InputFile:   *input,
-			OutputPaths: []string{*out},
-		}
+		config = gollect.DefaultConfig()
+		config.InputFile = *input
+		config.OutputPaths = []string{*out}
 	} else {
 		config = gollect.LoadConfig(*cnf)
 	}
