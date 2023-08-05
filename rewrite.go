@@ -166,7 +166,7 @@ func (f *Filter) PackageSelectorExpr(node ast.Node) {
 				break
 			}
 
-			uses, _ := f.pkg.Info().Uses[i]
+			uses := f.pkg.Info().Uses[i]
 			pn, ok := uses.(*types.PkgName)
 			if !ok || isBuiltinPackage(pn.Imported().Path()) {
 				break

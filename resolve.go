@@ -385,7 +385,7 @@ func (r *DependencyResolver) Check(decl Decl) {
 			}
 
 			if id, ok := node.X.(*ast.Ident); ok && id != nil {
-				uses, _ := decl.Pkg().Info().Uses[id]
+				uses := decl.Pkg().Info().Uses[id]
 				switch uses := uses.(type) {
 				case *types.PkgName:
 					imported := uses.Imported()
