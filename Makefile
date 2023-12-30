@@ -6,7 +6,7 @@ install:
 
 install-tools:
 	go mod download
-	go install honnef.co/go/tools/cmd/staticcheck@7586196
+	go install honnef.co/go/tools/cmd/staticcheck@9e12e60
 
 clean:
 	go mod tidy

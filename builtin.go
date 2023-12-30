@@ -1,8 +1,6 @@
 package gollect
 
-import (
-	"strings"
-)
+import "strings"
 
 // A list of Golang's builtin package paths except internal prefixed packages.
 // Packages differ depending on the environment, but we ignore it
@@ -29,6 +27,7 @@ var builtinPackages = map[string]interface{}{
 	"crypto/cipher":        struct{}{},
 	"crypto/des":           struct{}{},
 	"crypto/dsa":           struct{}{},
+	"crypto/ecdh":          struct{}{},
 	"crypto/ecdsa":         struct{}{},
 	"crypto/ed25519":       struct{}{},
 	"crypto/elliptic":      struct{}{},
@@ -75,6 +74,7 @@ var builtinPackages = map[string]interface{}{
 	"go/build/constraint":  struct{}{},
 	"go/constant":          struct{}{},
 	"go/doc":               struct{}{},
+	"go/doc/comment":       struct{}{},
 	"go/format":            struct{}{},
 	"go/importer":          struct{}{},
 	"go/parser":            struct{}{},
@@ -140,6 +140,7 @@ var builtinPackages = map[string]interface{}{
 	"regexp/syntax":        struct{}{},
 	"runtime":              struct{}{},
 	"runtime/cgo":          struct{}{},
+	"runtime/coverage":     struct{}{},
 	"runtime/debug":        struct{}{},
 	"runtime/metrics":      struct{}{},
 	"runtime/pprof":        struct{}{},

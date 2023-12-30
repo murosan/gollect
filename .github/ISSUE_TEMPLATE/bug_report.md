@@ -14,7 +14,7 @@ assignees: ''
 **Environments:**
 
 - OS: [e.g. macOS]
-- Go version: [e.g. 1.18]
+- Go version: [e.g. 1.20]
 
 **Steps to reproduce:**
 

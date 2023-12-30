@@ -37,7 +37,7 @@ var NonFormatted1 = func() int {
 	return 100
 }()
 
-//  comment
+// comment
 func Abc() {
 	fmt.Println("abc")
 }

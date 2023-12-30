@@ -9,9 +9,15 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"os"
 	"strings"
 
+	"github.com/fatih/color"
 	"golang.org/x/tools/go/ast/astutil"
+)
+
+var (
+	WarnOutput = os.Stderr
 )
 
 // Filter provides a method for filtering slice of ast.Decl.
@@ -94,6 +100,13 @@ func (f *Filter) valueSpec(spec *ast.ValueSpec) {
 			names = append(names, id)
 			if len(spec.Values) > i {
 				values = append(values, spec.Values[i])
+			}
+		} else {
+			if f.pkg.path == "main" {
+				color.New(color.FgYellow).Fprintf(
+					WarnOutput,
+					"[warn] Removing the value `%s` from the main package\n", id.Name,
+				)
 			}
 		}
 	}
