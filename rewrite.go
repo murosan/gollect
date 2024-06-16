@@ -135,10 +135,12 @@ func (f *Filter) funcRecvKey(expr ast.Expr) string {
 		return expr.Name
 	case *ast.IndexExpr:
 		return expr.X.(*ast.Ident).Name
+	case *ast.IndexListExpr:
+		return expr.X.(*ast.Ident).Name
 	case *ast.StarExpr:
 		return f.funcRecvKey(expr.X)
 	default:
-		panic(fmt.Sprintf("unknown expr type (%T)", expr))
+		panic(fmt.Sprintf("unknown expr type (%T)%v", expr, expr))
 	}
 }
 
