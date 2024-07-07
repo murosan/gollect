@@ -9,4 +9,6 @@ type S[T, U any] struct {
 	u U
 }
 
-func (s S[T, U]) f1() {}
+func (s S[T, U]) f1() { s.f3() }
+
+func (s *S[T, U]) f3() {}
