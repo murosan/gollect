@@ -275,6 +275,8 @@ func receiverID(expr ast.Expr) *ast.Ident {
 		return expr
 	case *ast.IndexExpr:
 		return expr.X.(*ast.Ident)
+	case *ast.IndexListExpr:
+		return expr.X.(*ast.Ident)
 	case *ast.StarExpr:
 		return receiverID(expr.X)
 	default:
