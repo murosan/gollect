@@ -13,7 +13,7 @@ func shouldPanic(t *testing.T, f func(), onfail string) {
 	defer func() {
 		if err := recover(); err == nil {
 			// not recovered
-			t.Errorf(onfail)
+			t.Error(onfail)
 		}
 	}()
 
